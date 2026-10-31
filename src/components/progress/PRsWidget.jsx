@@ -1,0 +1,38 @@
+import React from 'react';
+import { ChevronRight, Trophy } from 'lucide-react';
+import { categoryColor } from '@/lib/programData';
+import { countPersonalRecords, getAllPersonalRecords } from '@/lib/trainingLogic';
+
+export default function PRsWidget({ sessions, onClick, className }) {
+  const accent = categoryColor('pull');
+  const count = countPersonalRecords(sessions);
+  const recent = getAllPersonalRecords(sessions).slice(0, 1);
+
+  return (
+    <div
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      className={`rounded-2xl border border-border bg-card/50 p-5 active:scale-[0.99] transition-transform cursor-pointer flex flex-col ${className || ''}`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Trophy size={15} className="text-muted-foreground" />
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">PRs</p>
+        </div>
+        <ChevronRight size={18} className="text-muted-foreground" />
+      </div>
+      <div className="flex-1 flex flex-col justify-end">
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-extrabold tnum leading-none">{count}</span>
+          <span className="text-xs text-muted-foreground">records</span>
+        </div>
+        {recent[0] && (
+          <p className="text-[11px] text-muted-foreground mt-2 truncate">
+            <span className="font-semibold text-foreground">{recent[0].record.label}</span> · {recent[0].name}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

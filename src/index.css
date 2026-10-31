@@ -1,0 +1,431 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 7.1%;
+    --background-2: 0 0% 9%;
+    --foreground: 0 0% 88%;
+    --card: 0 0% 12%;
+    --card-2: 0 0% 14%;
+    --card-foreground: 0 0% 88%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 88%;
+    --primary: 0 0% 88%;
+    --primary-foreground: 0 0% 7%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 88%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 217 11% 65%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 88%;
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 22%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.75rem;
+    --font-heading: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* category accents */
+    --c-push: 38 92% 55%;
+    --c-pull: 199 89% 60%;
+    --c-legs: 152 62% 52%;
+    --c-core: 262 83% 70%;
+    --c-skill: 220 14% 72%;
+    --c-prehab: 343 82% 72%;
+    --c-progress: 168 100% 72%;
+
+    /* user-selected accent (overridden at runtime via appearance.js) */
+    --brand: #3FB6F8;
+    --brand-fg: #06222e;
+    --page-bg: #121212;
+  }
+
+  html.theme-light {
+    --background: 220 20% 97%;
+    --background-2: 220 16% 94%;
+    --page-bg: #f4f6f9;
+    --foreground: 222 24% 12%;
+    --card: 0 0% 100%;
+    --card-2: 220 16% 96%;
+    --card-foreground: 222 24% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 12%;
+    --primary: 222 24% 12%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 16% 92%;
+    --secondary-foreground: 222 24% 12%;
+    --muted: 220 16% 92%;
+    --muted-foreground: 222 12% 42%;
+    --accent: 220 16% 92%;
+    --accent-foreground: 222 24% 12%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 14% 86%;
+    --input: 222 14% 86%;
+    --ring: 222 14% 78%;
+  }
+
+  html.theme-light body {
+    background-image: radial-gradient(120% 80% at 50% -10%, hsl(220 30% 90% / 0.6), transparent 60%);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    background-image:
+      radial-gradient(120% 80% at 50% -10%, hsl(0 0% 16% / 0.5), transparent 60%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--brand) 30%, transparent);
+  }
+}
+
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .text-balance { text-wrap: balance; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fade-in-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in { animation: fade-in 0.3s ease-out both; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scale-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.animate-pulse-ring { animation: pulse-ring 1.6s ease-in-out infinite; }
+/* APEX visual system: quiet surfaces, athletic hierarchy, technical details. */
+.apex-page {
+  width: 100%;
+  max-width: 620px;
+  margin-inline: auto;
+}
+
+.apex-brand-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--brand);
+  color: var(--brand-fg);
+  font-size: 25px;
+  font-weight: 950;
+  letter-spacing: -0.1em;
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
+.apex-overline {
+  color: hsl(var(--muted-foreground));
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.3;
+}
+.apex-overline span { color: var(--brand); padding-inline: 2px; }
+
+.apex-icon-button {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  background: hsl(var(--card) / 0.75);
+  color: hsl(var(--foreground));
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.apex-icon-button:hover { border-color: color-mix(in srgb, var(--brand) 42%, hsl(var(--border))); background: hsl(var(--card-2)); }
+.apex-icon-button:active { transform: scale(0.96); }
+.apex-icon-button-small { width: 32px; height: 32px; border-radius: 11px; }
+
+.apex-cycle-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 21px;
+  background: linear-gradient(125deg, color-mix(in srgb, var(--brand) 8%, hsl(var(--card))), hsl(var(--card)) 64%);
+  box-shadow: 0 14px 36px hsl(0 0% 0% / 0.08);
+}
+.apex-cycle-panel::after {
+  position: absolute;
+  top: -74px;
+  right: -54px;
+  width: 180px;
+  height: 180px;
+  border: 1px solid color-mix(in srgb, var(--brand) 16%, transparent);
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+}
+.apex-week-counter { display: flex; min-width: 76px; flex-direction: column; align-items: flex-end; }
+.apex-phase-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background: hsl(var(--background) / 0.45);
+  color: hsl(var(--foreground));
+  font-size: 10px;
+  font-weight: 700;
+}
+.apex-phase-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.apex-workout-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--session-accent) 30%, hsl(var(--border)));
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--session-accent) 12%, transparent), transparent 48%),
+    linear-gradient(145deg, hsl(var(--card-2)), hsl(var(--card)) 72%);
+  box-shadow: 0 18px 44px hsl(0 0% 0% / 0.1);
+}
+.apex-workout-hero::before {
+  position: absolute;
+  right: -80px;
+  top: 100px;
+  width: 210px;
+  height: 210px;
+  border: 1px solid color-mix(in srgb, var(--session-accent) 12%, transparent);
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+}
+.apex-workout-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.apex-scheduled-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--session-accent) 28%, hsl(var(--border)));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--session-accent) 9%, hsl(var(--card)));
+  color: hsl(var(--foreground));
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.apex-scheduled-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--session-accent); }
+.apex-workout-visual {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--session-accent) 24%, hsl(var(--border)));
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--session-accent) 10%, hsl(var(--background)));
+  color: var(--session-accent);
+}
+.apex-workout-hero > * { position: relative; z-index: 1; }
+.apex-workout-hero .apex-workout-hero-top { z-index: 2; }
+.apex-option-card {
+  padding: 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 13px;
+  background: hsl(var(--background) / 0.5);
+  text-align: left;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.apex-option-card:hover { border-color: color-mix(in srgb, var(--brand) 45%, hsl(var(--border))); background: hsl(var(--card)); }
+
+.apex-time-panel {
+  padding: 17px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 20px;
+  background: hsl(var(--card) / 0.72);
+}
+.apex-time-input {
+  display: flex;
+  height: 42px;
+  min-width: 88px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--background) / 0.72);
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+}
+.apex-time-input input { width: 38px; border: 0; outline: 0; background: transparent; color: hsl(var(--foreground)); font-size: 15px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.apex-time-choice {
+  height: 42px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--background) / 0.45);
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  font-weight: 800;
+  transition: all 150ms ease;
+}
+.apex-time-choice span { margin-left: 3px; font-size: 9px; font-weight: 600; }
+.apex-time-choice.is-selected { border-color: color-mix(in srgb, var(--brand) 56%, hsl(var(--border))); background: color-mix(in srgb, var(--brand) 12%, hsl(var(--card))); color: hsl(var(--foreground)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 18%, transparent); }
+
+.apex-button-primary, .apex-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 14px;
+  font-weight: 800;
+  transition: transform 150ms ease, filter 150ms ease, background 150ms ease;
+}
+.apex-button-primary { background: var(--brand); color: var(--brand-fg); box-shadow: 0 10px 26px color-mix(in srgb, var(--brand) 18%, transparent); }
+.apex-button-primary:hover { filter: brightness(1.06); }
+.apex-button-primary:active, .apex-button-secondary:active { transform: scale(0.985); }
+.apex-button-secondary { min-height: 44px; padding: 0 14px; border: 1px solid hsl(var(--border)); background: hsl(var(--background) / 0.55); color: hsl(var(--foreground)); }
+.apex-button-secondary:hover { border-color: color-mix(in srgb, var(--brand) 36%, hsl(var(--border))); background: hsl(var(--card-2)); }
+
+.apex-session-state, .apex-rest-panel {
+  padding: 20px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 23px;
+  background: linear-gradient(145deg, hsl(var(--card-2)), hsl(var(--card)) 75%);
+}
+.apex-session-active { border-color: color-mix(in srgb, var(--brand) 32%, hsl(var(--border))); }
+.apex-session-done { border-color: color-mix(in srgb, #34D399 30%, hsl(var(--border))); }
+.apex-state-icon, .apex-rest-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--brand) 26%, hsl(var(--border)));
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--brand) 11%, hsl(var(--background)));
+  color: var(--brand);
+}
+.apex-rest-panel { background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--brand) 10%, transparent), transparent 55%), hsl(var(--card)); }
+.apex-rest-icon { width: 52px; height: 52px; border-radius: 18px; }
+
+.apex-priority-card {
+  min-height: 126px;
+  padding: 14px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  background: hsl(var(--card) / 0.76);
+}
+.apex-priority-card.tone-skill { background: linear-gradient(145deg, color-mix(in srgb, #9AA7B8 9%, hsl(var(--card))), hsl(var(--card))); }
+.apex-priority-card.tone-push { background: linear-gradient(145deg, color-mix(in srgb, #F5A623 9%, hsl(var(--card))), hsl(var(--card))); }
+.apex-priority-icon, .apex-activity-icon {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--brand) 13%, hsl(var(--background)));
+  color: var(--brand);
+}
+.apex-activity-strip { padding: 13px 14px; border: 1px solid hsl(var(--border)); border-radius: 17px; background: hsl(var(--card) / 0.55); }
+.apex-footer-note { padding: 22px 0 8px; color: hsl(var(--muted-foreground)); font-size: 10px; text-align: center; letter-spacing: 0.04em; }
+
+/* Settings surfaces use one shared card language and clear section hierarchy. */
+.apex-settings-intro {
+  padding: 17px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 21px;
+  background: linear-gradient(130deg, color-mix(in srgb, var(--brand) 8%, hsl(var(--card))), hsl(var(--card)) 65%);
+}
+.apex-settings-avatar {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--brand) 25%, hsl(var(--border)));
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--brand) 12%, hsl(var(--background)));
+  color: var(--brand);
+}
+.apex-name-input { display: block; width: 100%; margin-top: 3px; border: 0; outline: 0; background: transparent; color: hsl(var(--foreground)); font-size: 18px; font-weight: 750; letter-spacing: -0.025em; }
+.apex-name-input::placeholder { color: hsl(var(--muted-foreground)); }
+.apex-number-input { height: 42px; padding: 0 12px; border: 1px solid hsl(var(--border)); border-radius: 12px; outline: 0; background: hsl(var(--background) / 0.55); color: hsl(var(--foreground)); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.apex-number-input:focus, .apex-name-input:focus { border-color: color-mix(in srgb, var(--brand) 55%, hsl(var(--border))); }
+.apex-unit-toggle { display: flex; height: 42px; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: 12px; background: hsl(var(--background) / 0.5); }
+.apex-unit-toggle button { min-width: 43px; color: hsl(var(--muted-foreground)); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.apex-unit-toggle button.is-selected { background: hsl(var(--foreground)); color: hsl(var(--background)); }
+.apex-settings-section { margin-bottom: 23px; }
+.apex-settings-section-icon { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 1px solid hsl(var(--border)); border-radius: 11px; background: hsl(var(--card)); color: var(--brand); }
+.apex-settings-card { padding: 14px; border: 1px solid hsl(var(--border)); border-radius: 19px; background: hsl(var(--card) / 0.72); }
+.apex-program-option { display: flex; width: 100%; align-items: center; gap: 11px; padding: 12px; border: 1px solid hsl(var(--border)); border-radius: 14px; background: hsl(var(--background) / 0.35); text-align: left; transition: border-color 150ms ease, background 150ms ease; }
+.apex-program-option:hover { border-color: color-mix(in srgb, var(--brand) 38%, hsl(var(--border))); }
+.apex-program-option.is-selected { border-color: color-mix(in srgb, var(--brand) 54%, hsl(var(--border))); background: color-mix(in srgb, var(--brand) 7%, hsl(var(--card))); }
+.apex-program-icon, .apex-action-icon { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--brand) 12%, hsl(var(--background))); color: var(--brand); }
+.apex-current-badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 6px; border-radius: 5px; background: color-mix(in srgb, var(--brand) 13%, hsl(var(--background))); color: var(--brand); font-size: 8px; font-weight: 900; letter-spacing: 0.07em; }
+.apex-radio { display: grid; width: 18px; height: 18px; flex: 0 0 auto; place-items: center; border: 1.5px solid hsl(var(--border)); border-radius: 50%; }
+.apex-radio.is-selected { border-color: var(--brand); }
+.apex-radio span { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+.apex-settings-link { display: flex; width: 100%; align-items: center; justify-content: space-between; color: hsl(var(--muted-foreground)); font-size: 11px; font-weight: 700; }
+.apex-settings-link:hover { color: hsl(var(--foreground)); }
+.apex-equipment-chip { display: inline-flex; min-height: 35px; align-items: center; gap: 6px; padding: 0 11px; border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--background) / 0.4); color: hsl(var(--muted-foreground)); font-size: 11px; font-weight: 650; transition: all 150ms ease; }
+.apex-equipment-chip.is-selected { border-color: color-mix(in srgb, var(--brand) 45%, hsl(var(--border))); background: color-mix(in srgb, var(--brand) 9%, hsl(var(--card))); color: hsl(var(--foreground)); }
+.apex-switch { display: flex; width: 42px; height: 24px; flex: 0 0 auto; align-items: center; padding: 3px; border: 1px solid hsl(var(--border)); border-radius: 999px; background: hsl(var(--muted)); transition: background 150ms ease, border-color 150ms ease; }
+.apex-switch span { width: 16px; height: 16px; border-radius: 50%; background: hsl(var(--muted-foreground)); transition: transform 150ms ease, background 150ms ease; }
+.apex-switch.is-on { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 35%, hsl(var(--background))); }
+.apex-switch.is-on span { transform: translateX(17px); background: var(--brand); }
+.apex-theme-option { display: flex; height: 43px; align-items: center; gap: 8px; padding: 0 11px; border: 1px solid hsl(var(--border)); border-radius: 12px; background: hsl(var(--background) / 0.4); color: hsl(var(--muted-foreground)); font-size: 12px; font-weight: 700; text-align: left; }
+.apex-theme-option.is-selected { border-color: color-mix(in srgb, var(--brand) 45%, hsl(var(--border))); background: color-mix(in srgb, var(--brand) 9%, hsl(var(--card))); color: hsl(var(--foreground)); }
+.apex-accent-option { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 5px; padding: 8px 3px; border: 1px solid transparent; border-radius: 12px; color: hsl(var(--muted-foreground)); font-size: 10px; font-weight: 650; }
+.apex-accent-option.is-selected { border-color: hsl(var(--border)); background: hsl(var(--background) / 0.55); color: hsl(var(--foreground)); }
+.apex-accent-swatch { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; box-shadow: inset 0 0 0 1px hsl(0 0% 0% / 0.08); }
+.apex-settings-action { display: flex; width: 100%; align-items: center; gap: 11px; padding: 10px; border: 1px solid hsl(var(--border)); border-radius: 13px; background: hsl(var(--background) / 0.35); transition: background 150ms ease, border-color 150ms ease; }
+.apex-settings-action:hover { border-color: color-mix(in srgb, var(--brand) 35%, hsl(var(--border))); background: hsl(var(--background) / 0.65); }
+.apex-settings-danger { display: inline-flex; min-height: 38px; align-items: center; gap: 7px; padding: 0 10px; color: hsl(var(--destructive)); font-size: 11px; font-weight: 700; }
+.apex-settings-danger:disabled, .apex-settings-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .apex-page *, .apex-page *::before, .apex-page *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
