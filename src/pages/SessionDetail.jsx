@@ -60,11 +60,11 @@ export default function SessionDetail() {
       {/* exercises */}
       <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mt-6 mb-2">Exercises</p>
       <div className="space-y-2">
-        {session.exercises.map((e) => {
+        {session.exercises.map((e, index) => {
           const results = e.sets.filter((s) => s.completed && !s.skipped);
           const exNote = e.note?.trim();
           return (
-            <div key={e.exerciseId} className="p-3 rounded-xl border border-border bg-card/40">
+            <div key={`${e.exerciseId}-${index}`} className="p-3 rounded-xl border border-border bg-card/40">
               <div className="flex items-center gap-3">
                 <span className="w-10 h-10 rounded-lg flex items-center justify-center bg-background/60 shrink-0">
                   <ExerciseVisual visualId={e.visualId} category={e.category} />
