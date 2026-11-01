@@ -2,11 +2,6 @@ import React from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { getExercise } from '@/lib/programData';
 
-// Easier / harder variation switcher. Works for any exercise that has
-// alternatives, even without predefined progression levels. Options are
-// ranked by difficulty (Beginner → Intermediate → Advanced); the adjacent
-// option in that ranking becomes the "Easier" or "Harder" target. Same-
-// difficulty neighbours are offered as a plain "Switch".
 const DIFF_RANK = { Beginner: 0, Intermediate: 1, Advanced: 2 };
 
 export default function VariationSwitcher({ originalId, currentId, onSwitch }) {
@@ -32,25 +27,26 @@ export default function VariationSwitcher({ originalId, currentId, onSwitch }) {
     const c = DIFF_RANK[current.difficulty] ?? 1;
     if (r < c) return 'Easier';
     if (r > c) return 'Harder';
-    return 'Switch';
+    return 'Alternative';
   };
 
   const btn = (ex, Icon, side) =>
     ex ? (
       <button
+        type="button"
         onClick={() => onSwitch(ex.id)}
-        className="flex-1 inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border border-border bg-card/40 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors justify-center min-w-0"
+        className="flex-1 inline-flex items-center gap-1.5 px-3 h-8 rounded-xl border border-border/80 bg-card/40 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:border-border hover:bg-card/70 transition-all active:scale-95 justify-center min-w-0"
       >
-        {side === 'left' && <Icon size={13} className="shrink-0" />}
+        {side === 'left' && <Icon size={12} className="shrink-0 text-emerald-400" />}
         <span className="truncate">{labelFor(ex)}: {ex.name}</span>
-        {side === 'right' && <Icon size={13} className="shrink-0" />}
+        {side === 'right' && <Icon size={12} className="shrink-0 text-amber-400" />}
       </button>
     ) : (
       <div className="flex-1" />
     );
 
   return (
-    <div className="mt-3 flex gap-2">
+    <div className="mt-2.5 flex items-center gap-2">
       {btn(prev, ArrowDown, 'left')}
       {btn(next, ArrowUp, 'right')}
     </div>
