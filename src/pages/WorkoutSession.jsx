@@ -22,6 +22,7 @@ import VariationSwitcher from '@/components/workout/VariationSwitcher';
 import RestState from '@/components/workout/RestState';
 import WheelSheet from '@/components/workout/WheelSheet';
 import ConsoleSheet from '@/components/workout/ConsoleSheet';
+import { triggerFeedback } from '@/lib/workoutFeedback';
 
 const LAYOUTS = [
   { id: 'focus', label: 'Guided' },
@@ -178,6 +179,8 @@ export default function WorkoutSession() {
   };
 
   const switchExercise = (targetId) => {
+    if (!getExercise(targetId)) return;
+    triggerFeedback('selection');
     setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
@@ -214,6 +217,7 @@ export default function WorkoutSession() {
   };
 
   const togglePause = () => {
+    triggerFeedback('confirm');
     setSession((prev) => {
       const next = structuredClone(prev);
       if (next.paused) {
@@ -289,16 +293,22 @@ export default function WorkoutSession() {
       return;
     }
     setMissingAt(null);
+    const isFinalSet =
+      exerciseIndex === session.exercises.length - 1 &&
+      setIndex === exercise.sets.length - 1;
+    triggerFeedback(isFinalSet ? 'workoutFinish' : 'setComplete');
     advance({ completed: true, skipped: false, completedAt: Date.now() }, { exerciseIndex, setIndex });
   };
 
   const skipSetAt = (exerciseIndex, setIndex) => {
     if (paused) return;
+    triggerFeedback('selection');
     setMissingAt(null);
     advance({ completed: true, skipped: true, completedAt: Date.now() }, { exerciseIndex, setIndex });
   };
 
   const finishWorkout = () => {
+    triggerFeedback('workoutFinish');
     const finished = structuredClone(session);
     finished.finishedAt = Date.now();
     if (finished.resumeAt && !finished.paused) {
@@ -322,6 +332,7 @@ export default function WorkoutSession() {
   };
 
   const selectSetInList = (exerciseIndex, setIndex) => {
+    triggerFeedback('selection');
     setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
@@ -337,6 +348,7 @@ export default function WorkoutSession() {
     const currentIndex = targetCursor.exerciseIndex;
     const nextIndex = currentIndex + delta;
     if (nextIndex < 0 || nextIndex >= session.exercises.length) return;
+    triggerFeedback('selection');
     const nextExercise = session.exercises[nextIndex];
     setMissingAt(null);
     setSession((prev) => {
@@ -443,7 +455,7 @@ export default function WorkoutSession() {
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') setShowMenu(false);
                 }}
-                className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-[var(--console-line)] bg-[var(--console-surface)] p-1 shadow-2xl shadow-black/60"
+                className="console-menu-enter absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-[var(--console-line)] bg-[var(--console-surface)] p-1 shadow-2xl shadow-black/60"
               >
                 <p className="px-3 pb-1 pt-2 text-[10px] font-semibold text-[var(--console-steel)]">
                   View
@@ -685,7 +697,7 @@ export default function WorkoutSession() {
         {renderTopBar()}
 
         <main className="min-h-0 overflow-y-auto">
-          <section className="console-hero">
+          <section key={focusKey} className="console-hero console-focus-enter">
             <div className="console-watermark" aria-hidden="true">
               <ExerciseVisual
                 visualId={cur.visualId}

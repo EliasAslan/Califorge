@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
@@ -5,6 +6,7 @@ import Layout from '@/components/Layout';
 import ScrollToTop from '@/components/ScrollToTop';
 import PageNotFound from '@/lib/PageNotFound';
 import { queryClientInstance } from '@/lib/query-client';
+import { loadSettings } from '@/lib/storage';
 import Home from '@/pages/Home';
 import Progress from '@/pages/Progress';
 import WeekDetail from '@/pages/WeekDetail';
@@ -22,6 +24,18 @@ import WorkoutSummary from '@/pages/WorkoutSummary';
 import PhaseComplete from '@/pages/PhaseComplete';
 import History from '@/pages/History';
 import SessionDetail from '@/pages/SessionDetail';
+
+function MotionPreferenceSync() {
+  useEffect(() => {
+    const sync = () => {
+      document.documentElement.dataset.reduceMotion = String(!!loadSettings().reduceMotion);
+    };
+    sync();
+    window.addEventListener('califorge:settings-changed', sync);
+    return () => window.removeEventListener('califorge:settings-changed', sync);
+  }, []);
+  return null;
+}
 
 function AppRoutes() {
   return (
@@ -58,6 +72,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClientInstance}>
       <BrowserRouter>
+        <MotionPreferenceSync />
         <ScrollToTop />
         <AppRoutes />
       </BrowserRouter>

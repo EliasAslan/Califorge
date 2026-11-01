@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import ConsoleSheet from '@/components/workout/ConsoleSheet';
+import { haptic } from '@/lib/workoutFeedback';
 
 const ITEM_H = 44;
 const VISIBLE_ROWS = 5;
@@ -122,11 +123,7 @@ export default function WheelSheet({
         setDraft(next);
         if (index !== lastIndexRef.current) {
           lastIndexRef.current = index;
-          try {
-            navigator.vibrate?.(4);
-          } catch {
-            /* haptics unavailable */
-          }
+          haptic('tick');
         }
       }
     }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { triggerFeedback } from '@/lib/workoutFeedback';
 import { ArrowRight, Check, ChevronDown, Clock, Dumbbell, Moon, Play, RotateCcw, Settings2, Trash2 } from 'lucide-react';
 import { getActiveProgram, getActiveProgramId, getExercise, getWorkout, getProgramWorkouts, categoryColor } from '@/lib/programData';
 import { getPhaseForWeek, getWeekMeta, buildSession, buildCustomSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, getExercisesForTimeBudget, estimateExercisesDuration, getModeForTimeBudget } from '@/lib/trainingLogic';
@@ -68,6 +69,7 @@ export default function Home() {
       : buildSession(workout.id, week, mode, { ...context, exerciseIds, timeBudgetMin: timeBudget });
     if (!session) return;
     saveActiveSession(session);
+    triggerFeedback('workoutStart');
     navigate('/workout');
   };
   const discardActive = () => {

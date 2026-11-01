@@ -1030,3 +1030,50 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ── Interaction polish: short, restrained motion with clear state changes ── */
+@keyframes console-content-enter {
+  from { opacity: 0; transform: translateY(7px) scale(0.992); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes console-check-enter {
+  0% { opacity: 0.55; transform: scale(0.78); }
+  70% { transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.console-focus-enter { animation: console-content-enter 190ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.console-rest-enter { animation: console-content-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.console-list-editor-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 190ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms ease;
+}
+.console-list-editor-wrap.is-open { grid-template-rows: 1fr; opacity: 1; }
+.console-list-editor-wrap > .console-list-editor { min-height: 0; overflow: hidden; }
+.console-menu-enter { animation: console-content-enter 150ms cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: top right; }
+.console-list-row { transition: background-color 150ms ease, padding 150ms ease, color 150ms ease; -webkit-tap-highlight-color: transparent; }
+.console-list-row:active { background: color-mix(in srgb, var(--console-chalk) 5%, transparent); }
+.console-list-index.is-done { animation: console-check-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.console-page button:not(:disabled) { -webkit-tap-highlight-color: transparent; }
+.console-page button:not(:disabled):active { transform: scale(0.985); }
+.console-page button:disabled { cursor: not-allowed; }
+
+html[data-reduce-motion='true'] *,
+html[data-reduce-motion='true'] *::before,
+html[data-reduce-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
