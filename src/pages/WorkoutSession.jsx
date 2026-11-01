@@ -484,28 +484,6 @@ export default function WorkoutSession() {
                   role="menuitem"
                   onClick={() => {
                     setShowMenu(false);
-                    setShowCue(true);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:text-[var(--console-chalk)]"
-                >
-                  <Info size={14} /> Form cue
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setShowMenu(false);
-                    setShowNote(true);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:text-[var(--console-chalk)]"
-                >
-                  <StickyNote size={14} /> Note
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setShowMenu(false);
                     setConfirmCancel(true);
                   }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-oxide)] hover:bg-[var(--console-surface-2)]"
@@ -788,6 +766,27 @@ export default function WorkoutSession() {
                 </button>
               </div>
             )}
+          </section>
+
+          <section className="console-tools" aria-label="Session tools">
+            <div className="console-tools-heading">
+              <span>Session tools</span>
+              <span>{lastPerf ? `Last time · ${lastPerf}` : 'First time logging this exercise'}</span>
+            </div>
+            {rec?.text && (
+              <p className="console-tools-coach">
+                <Info size={13} aria-hidden="true" />
+                <span>{rec.text}</span>
+              </p>
+            )}
+            <div className="console-tools-actions">
+              <button type="button" onClick={() => setShowCue(true)} className="console-tool-button">
+                <Info size={15} aria-hidden="true" /> Form cue
+              </button>
+              <button type="button" onClick={() => setShowNote(true)} className="console-tool-button">
+                <StickyNote size={15} aria-hidden="true" /> Note
+              </button>
+            </div>
           </section>
         </main>
 
