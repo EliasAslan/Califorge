@@ -484,10 +484,10 @@ export default function WorkoutSession() {
         {isSkill ? (
           <div className="p-3 rounded-xl border border-border bg-card/40">
             <p className="text-sm text-muted-foreground mb-3">Practice for <span className="text-foreground font-semibold">{cur.durationMin} min</span>. Log your best hold if you want.</p>
-            <SetInputs exercise={cur} set={set} update={update} size={minimal ? 'sm' : 'md'} />
+            <SetInputs exercise={cur} set={set} update={update} size={layout === 'minimal' ? 'sm' : 'md'} />
           </div>
         ) : (
-          <SetInputs exercise={cur} set={set} update={update} size={minimal ? 'sm' : 'md'} />
+          <SetInputs exercise={cur} set={set} update={update} size={layout === 'minimal' ? 'sm' : 'md'} />
         )}
         <div className="mt-4">
           <ExerciseNote value={cur.note || ''} onChange={updateExerciseNote} accent={accent} />
