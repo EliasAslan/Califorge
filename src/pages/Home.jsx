@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, ChevronDown, Clock, Dumbbell, Moon, Play, RotateCcw, Settings2, Trash2 } from 'lucide-react';
 import { getActiveProgram, getActiveProgramId, getWorkout, getProgramWorkouts, categoryColor } from '@/lib/programData';
-import { getPhaseForWeek, buildSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, getExercisesForTimeBudget, estimateExercisesDuration, getModeForTimeBudget } from '@/lib/trainingLogic';
+import { getPhaseForWeek, getWeekMeta, buildSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, getExercisesForTimeBudget, estimateExercisesDuration, getModeForTimeBudget } from '@/lib/trainingLogic';
 import { loadCurrentWeek, loadActiveSession, saveActiveSession, clearActiveSession, getEnjoyment, loadSettings } from '@/lib/storage';
 import { useSessions } from '@/hooks/useTrainingData';
 
