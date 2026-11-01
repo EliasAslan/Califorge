@@ -105,6 +105,15 @@ export const DEFAULT_SETTINGS = {
 export const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...get('settings', {}) });
 export const saveSettings = (settings) => set('settings', settings);
 
+// Last-used workout presentation; separate from session data.
+export const loadWorkoutLayout = () => {
+  const layout = get('workoutLayout', 'focus');
+  return ['focus', 'minimal', 'list'].includes(layout) ? layout : 'focus';
+};
+export const saveWorkoutLayout = (layout) => {
+  if (['focus', 'minimal', 'list'].includes(layout)) set('workoutLayout', layout);
+};
+
 // ── Enjoyment ratings (1–5 per exercise) ──────────────────────────────────────
 export const getEnjoyment = () => loadSettings().enjoyment || {};
 export const getEnjoymentFor = (id) => getEnjoyment()[id] ?? null;
@@ -120,6 +129,7 @@ export const setEnjoymentFor = (id, value) => {
 export const clearLocalData = () => {
   remove('activeSession');
   remove('settings');
+  remove('workoutLayout');
   remove('currentWeek');
   remove('programWeeks');
   remove('programCycleStarts');
