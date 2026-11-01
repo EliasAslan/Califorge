@@ -14,6 +14,11 @@ import ProgressionSelector from '@/components/workout/ProgressionSelector';
 import VariationSwitcher from '@/components/workout/VariationSwitcher';
 
 const GREEN = '#22C55E';
+const LAYOUTS = [
+  { id: 'focus', label: 'Focus' },
+  { id: 'minimal', label: 'Minimal' },
+  { id: 'list', label: 'List' },
+];
 
 export default function WorkoutSession() {
   const navigate = useNavigate();
@@ -295,16 +300,30 @@ export default function WorkoutSession() {
         {showMenu && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-            <div className="absolute right-0 top-11 z-50 w-44 rounded-xl border border-border bg-popover shadow-2xl shadow-black/50 overflow-hidden animate-fade-in">
+            <div role="menu" aria-label="Workout options"
+              onKeyDown={(e) => { if (e.key === 'Escape') setShowMenu(false); }}
+              className="absolute right-0 top-11 z-50 w-52 rounded-xl border border-border bg-popover shadow-2xl shadow-black/50 overflow-hidden animate-fade-in">
+              <p className="px-3.5 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Workout layout</p>
+              <div role="group" aria-label="Workout layout">
+                {LAYOUTS.map((option) => (
+                  <button key={option.id} type="button" role="menuitemradio" aria-checked={layout === option.id}
+                    onClick={() => { setLayout(option.id); setShowMenu(false); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-left hover:bg-card/60 transition-colors">
+                    <span className="flex-1">{option.label}</span>
+                    {layout === option.id && <Check size={15} className="text-muted-foreground" />}
+                  </button>
+                ))}
+              </div>
               {showFinish && (
                 <button
+                  role="menuitem"
                   onClick={() => { setShowMenu(false); finishWorkout(); }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-3 text-sm font-medium text-left hover:bg-card/60 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3.5 py-3 text-sm font-medium text-left hover:bg-card/60 transition-colors border-t border-border"
                 >
                   <Flag size={15} className="text-muted-foreground" /> Finish workout
                 </button>
               )}
-              <button
+              <button role="menuitem"
                 onClick={() => { setShowMenu(false); setConfirmCancel(true); }}
                 className="w-full flex items-center gap-2.5 px-3.5 py-3 text-sm font-medium text-left text-red-400 hover:bg-card/60 transition-colors border-t border-border"
               >
@@ -360,8 +379,6 @@ export default function WorkoutSession() {
       totalSets={totalSets}
       progress={progress}
       paused={paused}
-      layout={layout}
-      setLayout={setLayout}
       onSelectSet={selectSetInList}
       update={update}
       completeSet={completeSet}
@@ -392,13 +409,6 @@ export default function WorkoutSession() {
         <div className="h-1.5 rounded-full bg-border overflow-hidden">
           <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progress * 100}%`, background: 'hsl(var(--foreground))' }} />
         </div>
-      </div>
-
-      <div className="flex items-center gap-1 p-1 rounded-xl border border-border bg-card/40 mb-3" aria-label="Workout layout">
-        {['focus', 'minimal', 'list'].map((mode) => (
-          <button key={mode} onClick={() => setLayout(mode)} aria-pressed={layout === mode}
-            className={`flex-1 h-8 rounded-lg text-xs font-semibold capitalize transition-colors ${layout === mode ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>{mode}</button>
-        ))}
       </div>
 
       {/* exercise header */}
