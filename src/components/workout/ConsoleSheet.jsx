@@ -1,6 +1,7 @@
 import React from 'react';
 import { Drawer } from 'vaul';
 import { X } from 'lucide-react';
+import { haptic } from '@/lib/workoutFeedback';
 
 // Shared bottom sheet for the in-session console.
 export default function ConsoleSheet({
@@ -13,8 +14,13 @@ export default function ConsoleSheet({
   className = '',
   onOverlayClick,
 }) {
+  const handleOpenChange = (nextOpen) => {
+    if (nextOpen !== open) haptic('selection');
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} shouldScaleBackground={false}>
+    <Drawer.Root open={open} onOpenChange={handleOpenChange} shouldScaleBackground={false}>
       <Drawer.Portal>
         <Drawer.Overlay
           className="fixed inset-0 z-50 bg-black/70"
