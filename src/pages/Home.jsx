@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, ChevronDown, Clock, Dumbbell, Moon, Play, RotateCcw, Settings2, Trash2 } from 'lucide-react';
-import { getActiveProgram, getActiveProgramId, getWorkout, getProgramWorkouts, categoryColor } from '@/lib/programData';
-import { getPhaseForWeek, getWeekMeta, buildSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, getExercisesForTimeBudget, estimateExercisesDuration, getModeForTimeBudget } from '@/lib/trainingLogic';
+import { getActiveProgram, getActiveProgramId, getExercise, getWorkout, getProgramWorkouts, categoryColor } from '@/lib/programData';
+import { getPhaseForWeek, getWeekMeta, buildSession, buildCustomSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, getExercisesForTimeBudget, estimateExercisesDuration, getModeForTimeBudget } from '@/lib/trainingLogic';
 import { loadCurrentWeek, loadActiveSession, saveActiveSession, clearActiveSession, getEnjoyment, loadSettings } from '@/lib/storage';
-import { useSessions } from '@/hooks/useTrainingData';
+import { useCustomWorkouts, useSessions } from '@/hooks/useTrainingData';
 
 const TIME_PRESETS = [15, 25, 40, 60];
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -15,9 +15,11 @@ export default function Home() {
   const [active, setActive] = useState(null);
   const [availableMinutes, setAvailableMinutes] = useState(30);
   const [workoutOverride, setWorkoutOverride] = useState(null);
+  const [customWorkoutOverride, setCustomWorkoutOverride] = useState(null);
   const [showWorkoutOptions, setShowWorkoutOptions] = useState(false);
   const [trainOnRestDay, setTrainOnRestDay] = useState(false);
   const { data: sessions = [] } = useSessions();
+  const { data: customWorkouts = [] } = useCustomWorkouts();
 
   useEffect(() => { setWeek(loadCurrentWeek()); setActive(loadActiveSession()); }, []);
 
@@ -32,13 +34,26 @@ export default function Home() {
   const context = { sessions, enjoyment: getEnjoyment() };
   const recommendation = getPlanLedWorkoutRecommendation(programId, now);
   const programWorkouts = getProgramWorkouts(programId);
+  const selectedCustomWorkout = customWorkoutOverride
+    ? customWorkouts.find((item) => item.id === customWorkoutOverride) || null
+    : null;
   const selectedWorkoutId = workoutOverride && programWorkouts[workoutOverride] ? workoutOverride : recommendation?.workoutId;
-  const workout = getWorkout(selectedWorkoutId);
-  const isRestDay = !!recommendation?.isRestDay && !trainOnRestDay && !workoutOverride;
+  const plannedWorkout = getWorkout(selectedWorkoutId);
+  const workout = selectedCustomWorkout ? {
+    id: selectedCustomWorkout.id,
+    name: selectedCustomWorkout.name,
+    subtitle: `${selectedCustomWorkout.exercises.length} exercises · Created by you`,
+    category: getExercise(selectedCustomWorkout.exercises[0])?.category || 'push',
+    exercises: selectedCustomWorkout.exercises,
+    isCustom: true,
+  } : plannedWorkout;
+  const isRestDay = !!recommendation?.isRestDay && !trainOnRestDay && !workoutOverride && !customWorkoutOverride;
   const category = workout?.category || 'skill';
   const categoryAccent = categoryColor(category);
   const mode = getModeForTimeBudget(timeBudget);
-  const exerciseIds = workout ? getExercisesForTimeBudget(workout, week, timeBudget, context) : [];
+  const exerciseIds = workout?.isCustom
+    ? workout.exercises.filter((id) => getExercise(id))
+    : workout ? getExercisesForTimeBudget(workout, week, timeBudget, context) : [];
   const duration = estimateExercisesDuration(exerciseIds, week, timeBudget);
   const todaySession = sessions.filter((session) => isSameDay(new Date(session.date), now) && getProgramSessions([session], programId).length > 0)
     .sort((a, b) => new Date(b.date) - new Date(a.date)).find((session) => completedCount(session) >= 2);
@@ -48,7 +63,9 @@ export default function Home() {
   const startWorkout = () => {
     if (active) { navigate('/workout'); return; }
     if (!workout || !exerciseIds.length) return;
-    const session = buildSession(workout.id, week, mode, { ...context, exerciseIds, timeBudgetMin: timeBudget });
+    const session = workout.isCustom
+      ? buildCustomSession(workout.name, exerciseIds, week, mode)
+      : buildSession(workout.id, week, mode, { ...context, exerciseIds, timeBudgetMin: timeBudget });
     if (!session) return;
     saveActiveSession(session);
     navigate('/workout');
@@ -96,7 +113,7 @@ export default function Home() {
       ) : workout ? (
         <>
           <section className="apex-workout-hero animate-fade-in-up" style={{ '--session-accent': categoryAccent }}>
-            <div className="flex items-center justify-between gap-3"><p className="apex-overline">{workoutOverride ? 'OPTIONAL ALTERNATIVE' : trainOnRestDay ? 'OPTIONAL SESSION' : "TODAY'S PLANNED SESSION"}</p><span className="apex-scheduled-badge"><span /> {workoutOverride || trainOnRestDay ? 'Optional' : 'On plan'}</span></div>
+            <div className="flex items-center justify-between gap-3"><p className="apex-overline">{workoutOverride || customWorkoutOverride ? 'OPTIONAL ALTERNATIVE' : trainOnRestDay ? 'OPTIONAL SESSION' : "TODAY'S PLANNED SESSION"}</p><span className="apex-scheduled-badge"><span /> {workoutOverride || customWorkoutOverride || trainOnRestDay ? 'Optional' : 'On plan'}</span></div>
             <p className="mt-5 text-xs font-semibold uppercase tracking-[0.13em]" style={{ color: 'var(--session-accent)' }}>{workout.category} <span className="mx-1 opacity-40">/</span> {recommendation?.scheduledDay || todayLabel}</p>
             <h2 className="mt-2 text-[2.4rem] font-extrabold leading-[0.98] tracking-[-0.055em]">{workout.name}</h2>
             <p className="mt-2 max-w-[34ch] text-sm leading-relaxed text-muted-foreground">{workout.subtitle}</p>
@@ -104,10 +121,34 @@ export default function Home() {
               <div className="flex items-center gap-2"><Clock size={15} className="text-muted-foreground" /><span className="text-sm font-semibold">~{duration} min</span></div>
               <div className="flex items-center gap-2"><Dumbbell size={15} className="text-muted-foreground" /><span className="text-sm font-semibold">{exerciseIds.length} exercises</span></div>
             </div>
-            {workoutOverride && <p className="mt-3 text-xs text-muted-foreground">Your planned program remains unchanged.</p>}
+            {(workoutOverride || customWorkoutOverride) && <p className="mt-3 text-xs text-muted-foreground">Your planned program remains unchanged.</p>}
             <button type="button" onClick={() => setShowWorkoutOptions((value) => !value)} className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">{showWorkoutOptions ? 'Hide alternatives' : 'Choose another workout'} <ChevronDown size={14} className={showWorkoutOptions ? 'rotate-180' : ''} /></button>
-            {showWorkoutOptions && <div className="mt-3 grid grid-cols-2 gap-2">{Object.values(programWorkouts).filter((item) => item.id !== workout.id).map((item) => <button key={item.id} type="button" onClick={() => { setWorkoutOverride(item.id); setShowWorkoutOptions(false); }} className="apex-option-card text-left"><span className="block text-sm font-semibold">{item.name}</span><span className="mt-1 block text-[11px] text-muted-foreground">{item.subtitle}</span></button>)}</div>}
-            {workoutOverride && <button type="button" onClick={() => setWorkoutOverride(null)} className="mt-2 block text-xs text-muted-foreground underline underline-offset-4">Restore planned workout</button>}
+            {showWorkoutOptions && (
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.values(programWorkouts).filter((item) => item.id !== workout.id).map((item) => (
+                    <button key={item.id} type="button" onClick={() => { setWorkoutOverride(item.id); setCustomWorkoutOverride(null); setShowWorkoutOptions(false); }} className="apex-option-card text-left">
+                      <span className="block text-sm font-semibold">{item.name}</span>
+                      <span className="mt-1 block text-[11px] text-muted-foreground">{item.subtitle}</span>
+                    </button>
+                  ))}
+                </div>
+                {customWorkouts.length > 0 && (
+                  <section aria-label="Your custom workouts">
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Your workouts</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {customWorkouts.filter((item) => item.id !== selectedCustomWorkout?.id).map((item) => (
+                        <button key={item.id} type="button" onClick={() => { setCustomWorkoutOverride(item.id); setWorkoutOverride(null); setShowWorkoutOptions(false); }} className="apex-option-card text-left">
+                          <span className="block text-sm font-semibold">{item.name}</span>
+                          <span className="mt-1 block text-[11px] text-muted-foreground">{item.exercises.length} {item.exercises.length === 1 ? 'exercise' : 'exercises'} · Custom</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+            )}
+            {(workoutOverride || customWorkoutOverride) && <button type="button" onClick={() => { setWorkoutOverride(null); setCustomWorkoutOverride(null); }} className="mt-2 block text-xs text-muted-foreground underline underline-offset-4">Restore planned workout</button>}
           </section>
 
           <section className="apex-time-panel mt-3">
