@@ -121,7 +121,7 @@ export default function Home() {
               <div className="flex items-center gap-2"><Clock size={15} className="text-muted-foreground" /><span className="text-sm font-semibold">~{duration} min</span></div>
               <div className="flex items-center gap-2"><Dumbbell size={15} className="text-muted-foreground" /><span className="text-sm font-semibold">{exerciseIds.length} exercises</span></div>
             </div>
-            {workoutOverride && <p className="mt-3 text-xs text-muted-foreground">Your planned program remains unchanged.</p>}
+            {(workoutOverride || customWorkoutOverride) && <p className="mt-3 text-xs text-muted-foreground">Your planned program remains unchanged.</p>}
             <button type="button" onClick={() => setShowWorkoutOptions((value) => !value)} className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">{showWorkoutOptions ? 'Hide alternatives' : 'Choose another workout'} <ChevronDown size={14} className={showWorkoutOptions ? 'rotate-180' : ''} /></button>
             {showWorkoutOptions && (
               <div className="mt-3 space-y-3">
@@ -137,7 +137,7 @@ export default function Home() {
                   <section aria-label="Your custom workouts">
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Your workouts</p>
                     <div className="grid grid-cols-2 gap-2">
-                      {customWorkouts.map((item) => (
+                      {customWorkouts.filter((item) => item.id !== selectedCustomWorkout?.id).map((item) => (
                         <button key={item.id} type="button" onClick={() => { setCustomWorkoutOverride(item.id); setWorkoutOverride(null); setShowWorkoutOptions(false); }} className="apex-option-card text-left">
                           <span className="block text-sm font-semibold">{item.name}</span>
                           <span className="mt-1 block text-[11px] text-muted-foreground">{item.exercises.length} {item.exercises.length === 1 ? 'exercise' : 'exercises'} · Custom</span>
