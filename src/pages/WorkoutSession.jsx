@@ -224,6 +224,11 @@ export default function WorkoutSession() {
 
   const completeSet = () => {
     if (paused) return;
+    const missing = [];
+    if (['reps', 'weighted', 'reps_hold'].includes(cur.type) && set.actualReps == null) missing.push('reps');
+    if (['hold', 'reps_hold'].includes(cur.type) && set.actualSec == null) missing.push('hold duration');
+    if (cur.type === 'weighted' && set.weight == null) missing.push('weight');
+    if (missing.length && !window.confirm('No value entered for ' + missing.join(', ') + '. Complete this set without logging ' + (missing.length === 1 ? 'it' : 'them') + '?')) return;
     const patch = { completed: true, skipped: false, completedAt: Date.now() };
     advance(patch);
   };
