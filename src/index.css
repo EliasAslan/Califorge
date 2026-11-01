@@ -753,6 +753,12 @@
   justify-content: space-between;
   gap: 4px;
 }
+.console-secondary-actions .console-text-action {
+  min-width: 0;
+  flex: 1;
+  justify-content: center;
+  padding-inline: 4px;
+}
 .console-text-action {
   display: inline-flex;
   min-height: 44px;
