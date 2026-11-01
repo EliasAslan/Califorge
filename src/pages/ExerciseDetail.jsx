@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, TrendingUp, Award, Heart } from 'lucide-react';
+import { ChevronLeft, TrendingUp, Heart } from 'lucide-react';
 import { EXERCISES, categoryColor } from '@/lib/programData';
 import { formatTarget, getPersonalRecord, getProgressionStatus, sessionsForExercise, formatSetResult, getExerciseTrend } from '@/lib/trainingLogic';
 import { getEnjoymentFor, setEnjoymentFor } from '@/lib/storage';

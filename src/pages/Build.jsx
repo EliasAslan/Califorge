@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, X, Play, Trash2, ChevronRight } from 'lucide-react';
 import { LIBRARY_EXERCISES, LIBRARY_CATEGORIES, CATEGORIES, categoryColor } from '@/lib/programData';

@@ -31,11 +31,11 @@ export default function NumberField({
   return (
     <div className={`flex items-stretch rounded-xl border bg-background/60 overflow-hidden ${invalid ? 'border-red-400/70' : 'border-border'} focus-within:border-foreground/40`}>
       <button type="button" onClick={() => bump(-1)} disabled={value != null && Number(value) <= min}
-        aria-label={`Decrease ${label}`} className={btn}>
+        aria-label={`Decrease ${label || 'value'}`} className={btn}>
         <Minus size={17} />
       </button>
       <label className="flex-1 min-w-0 flex items-center justify-center gap-1 border-x border-border/70 cursor-text">
-        <span className="sr-only">{label}</span>
+        <span className="sr-only">{label || 'Value'}</span>
         <input
           type="text"
           inputMode={String(step).includes('.') ? 'decimal' : 'numeric'}
@@ -57,7 +57,7 @@ export default function NumberField({
         {suffix && <span className="text-xs font-medium text-muted-foreground">{suffix}</span>}
       </label>
       <button type="button" onClick={() => bump(1)} disabled={value != null && Number(value) >= max}
-        aria-label={`Increase ${label}`} className={btn}>
+        aria-label={`Increase ${label || 'value'}`} className={btn}>
         <Plus size={17} />
       </button>
     </div>

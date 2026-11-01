@@ -1,17 +1,10 @@
 import React from 'react';
 import NumberField from '@/components/workout/NumberField';
+import { missingFields, isSkillType } from '@/lib/trainingLogic';
+
+export { missingFields, isSkillType };
 
 const first = (v) => (Array.isArray(v) ? v[0] : v ?? undefined);
-
-export function missingFields(type, set) {
-  const missing = [];
-  if (['reps', 'weighted', 'reps_hold'].includes(type) && set.actualReps == null) missing.push('reps');
-  if (['hold', 'reps_hold'].includes(type) && set.actualSec == null) missing.push('hold');
-  if (type === 'weighted' && set.weight == null) missing.push('weight');
-  return missing;
-}
-
-export const isSkillType = (type) => type === 'skill' || type === 'prehab';
 
 function Field({ label, children }) {
   return (

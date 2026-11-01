@@ -771,3 +771,14 @@ export const getProgramImprovements = (sessions, programId) => {
   });
   return out.sort((a, b) => b.delta - a.delta).slice(0, 4);
 };
+
+
+export const isSkillType = (type) => type === 'skill' || type === 'prehab';
+
+export const missingFields = (type, set = {}) => {
+  const missing = [];
+  if (['reps', 'weighted', 'reps_hold'].includes(type) && set.actualReps == null) missing.push('reps');
+  if (['hold', 'reps_hold'].includes(type) && set.actualSec == null) missing.push('hold');
+  if (type === 'weighted' && set.weight == null) missing.push('weight');
+  return missing;
+};
