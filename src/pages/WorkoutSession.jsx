@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { X, Info, Check, SkipForward, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2 } from 'lucide-react';
 import { categoryColor, getExercise, MODES } from '@/lib/programData';
 import { formatTarget, getLastPerformance, formatLastPerformance, formatClock, getRepRecommendation } from '@/lib/trainingLogic';
-import { loadActiveSession, saveActiveSession, clearActiveSession, STALE_MS } from '@/lib/storage';
+import { loadActiveSession, saveActiveSession, clearActiveSession, loadWorkoutLayout, saveWorkoutLayout, STALE_MS } from '@/lib/storage';
 import { useSessions } from '@/hooks/useTrainingData';
 import ExerciseVisual from '@/components/ExerciseVisual';
-import Stepper from '@/components/workout/Stepper';
+import VerticalNumberPicker from '@/components/workout/VerticalNumberPicker';
+import WorkoutListLayout from '@/components/workout/WorkoutListLayout';
 import RestTimer from '@/components/workout/RestTimer';
 import ExerciseNote from '@/components/workout/ExerciseNote';
 import ProgressionSelector from '@/components/workout/ProgressionSelector';
@@ -22,6 +23,7 @@ export default function WorkoutSession() {
   const [showMenu, setShowMenu] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [layout, setLayout] = useState(() => loadWorkoutLayout());
   const { data: sessions = [] } = useSessions();
 
   useEffect(() => {
@@ -36,6 +38,8 @@ export default function WorkoutSession() {
   useEffect(() => {
     if (session) saveActiveSession(session);
   }, [session]);
+
+  useEffect(() => { saveWorkoutLayout(layout); }, [layout]);
 
   // live workout timer (active time only; frozen while paused).
   // Auto-pauses if no set has been logged for STALE_MS, capping active time at
@@ -221,9 +225,6 @@ export default function WorkoutSession() {
   const completeSet = () => {
     if (paused) return;
     const patch = { completed: true, skipped: false, completedAt: Date.now() };
-    if (set.actualReps == null && (cur.type === 'reps' || cur.type === 'weighted' || cur.type === 'reps_hold')) patch.actualReps = set.actualReps ?? 0;
-    if (set.actualSec == null && (cur.type === 'hold' || cur.type === 'reps_hold')) patch.actualSec = set.actualSec ?? 0;
-    if (cur.type === 'weighted' && set.weight == null) patch.weight = set.weight ?? 0;
     advance(patch);
   };
 
@@ -336,6 +337,35 @@ export default function WorkoutSession() {
     );
   }
 
+  const selectSetInList = (exerciseIndex, setIndex) => {
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      next.cursor = { exerciseIndex, setIndex };
+      next.phase = 'work';
+      next.restEndsAt = null;
+      next.pendingNext = null;
+      return next;
+    });
+  };
+
+  if (layout === 'list') {
+    return <WorkoutListLayout
+      session={session}
+      doneSets={doneSets}
+      totalSets={totalSets}
+      progress={progress}
+      paused={paused}
+      layout={layout}
+      setLayout={setLayout}
+      onSelectSet={selectSetInList}
+      update={update}
+      completeSet={completeSet}
+      skipSet={skipSet}
+      togglePause={togglePause}
+      renderTopBar={renderTopBar}
+    />;
+  }
+
   // ── WORK PHASE ──
   const exDef = getExercise(cur.exerciseId);
   const lastPerfData = getLastPerformance(cur.exerciseId, sessions);
@@ -345,7 +375,7 @@ export default function WorkoutSession() {
   const hasLevels = !!exDef?.progressionLevels?.length;
 
   return (
-    <div className="min-h-screen flex flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))]">
+    <div data-workout-layout={layout} className={`min-h-screen flex flex-col px-5 pt-[max(1rem,env(safe-area-inset-top))] ${layout === "minimal" ? "text-sm" : ""}`}>
       {renderTopBar()}
 
       {/* progress */}
@@ -359,9 +389,16 @@ export default function WorkoutSession() {
         </div>
       </div>
 
+      <div className="flex items-center gap-1 p-1 rounded-xl border border-border bg-card/40 mb-3" aria-label="Workout layout">
+        {['focus', 'minimal', 'list'].map((mode) => (
+          <button key={mode} onClick={() => setLayout(mode)} aria-pressed={layout === mode}
+            className={`flex-1 h-8 rounded-lg text-xs font-semibold capitalize transition-colors ${layout === mode ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>{mode}</button>
+        ))}
+      </div>
+
       {/* exercise header */}
       <div className="flex items-start gap-3.5">
-        <div className="w-16 h-16 rounded-xl bg-background/60 flex items-center justify-center shrink-0">
+        <div className={`rounded-xl bg-background/60 flex items-center justify-center shrink-0 ${layout === "minimal" ? "w-11 h-11" : "w-16 h-16"}`}>
           <ExerciseVisual visualId={cur.visualId} category={cur.category} />
         </div>
         <div className="flex-1 min-w-0 pt-0.5">
@@ -394,7 +431,7 @@ export default function WorkoutSession() {
       )}
 
       {/* target + last performance */}
-      <div className="mt-4 p-3.5 rounded-xl border border-border bg-card/50">
+      <div className={`rounded-xl border border-border bg-card/50 ${layout === "minimal" ? "mt-2 p-2.5" : "mt-4 p-3.5"}`}>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Target</p>
         <p className="text-2xl font-bold tnum mt-0.5">{formatTarget(exDef)}</p>
         {lastPerf && (
@@ -434,7 +471,7 @@ export default function WorkoutSession() {
             <p className="text-sm text-muted-foreground">Practice for <span className="text-foreground font-semibold">{cur.durationMin} min</span></p>
             <p className="text-xs text-muted-foreground mt-1">Log your best hold below if you like.</p>
             <div className="mt-4 max-w-[220px] mx-auto">
-              <Stepper label="Best hold" value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} suffix="s" accent={accent} />
+              <VerticalNumberPicker label="Best hold" value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} suffix="s" accent={accent} />
             </div>
           </div>
         ) : (
@@ -442,30 +479,30 @@ export default function WorkoutSession() {
             {cur.type === 'weighted' && (
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Weight</p>
-                <Stepper value={set.weight ?? 0} onChange={(v) => update({ weight: v })} step={2.5} suffix="kg" accent={accent} />
+                <VerticalNumberPicker value={set.weight ?? 0} onChange={(v) => update({ weight: v })} step={2.5} suffix="kg" accent={accent} />
               </div>
             )}
             {(cur.type === 'reps' || cur.type === 'weighted') && (
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Reps</p>
-                <Stepper value={set.actualReps ?? 0} onChange={(v) => update({ actualReps: v })} accent={accent} />
+                <VerticalNumberPicker value={set.actualReps ?? 0} onChange={(v) => update({ actualReps: v })} accent={accent} />
               </div>
             )}
             {cur.type === 'hold' && (
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Hold (sec)</p>
-                <Stepper value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} accent={accent} />
+                <VerticalNumberPicker value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} accent={accent} />
               </div>
             )}
             {cur.type === 'reps_hold' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Reps</p>
-                  <Stepper value={set.actualReps ?? 0} onChange={(v) => update({ actualReps: v })} accent={accent} />
+                  <VerticalNumberPicker value={set.actualReps ?? 0} onChange={(v) => update({ actualReps: v })} accent={accent} />
                 </div>
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Hold (s)</p>
-                  <Stepper value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} accent={accent} />
+                  <VerticalNumberPicker value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} accent={accent} />
                 </div>
               </div>
             )}
