@@ -429,3 +429,10 @@
 @media (prefers-reduced-motion: reduce) {
   .apex-page *, .apex-page *::before, .apex-page *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+
+.dock-transition {
+  transition-property: all;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}

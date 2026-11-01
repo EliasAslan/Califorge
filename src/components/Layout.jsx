@@ -9,7 +9,12 @@ export default function Layout() {
 
   return (
     <div className="min-h-full">
-      <main className={`mx-auto max-w-[620px] min-h-screen ${inSession ? '' : 'pb-[calc(7rem+env(safe-area-inset-bottom))]'}`}>
+      <main
+        key={pathname}
+        className={`mx-auto max-w-[620px] min-h-screen animate-fade-in ${
+          inSession ? '' : 'pb-[calc(7.5rem+env(safe-area-inset-bottom))]'
+        }`}
+      >
         <Outlet />
       </main>
       {!inSession && <BottomNav />}
