@@ -49,7 +49,7 @@ export default function Build() {
         <button
           type="button"
           onClick={() => setBuilding(true)}
-          className="h-10 px-3.5 rounded-xl text-sm font-semibold inline-flex items-center gap-1.5 shrink-0"
+          className="h-11 px-4 rounded-xl text-sm font-semibold inline-flex items-center gap-2 shrink-0"
           style={{ background: 'var(--brand)', color: 'var(--brand-fg)' }}
         >
           <Plus size={16} /> New workout
@@ -77,7 +77,7 @@ export default function Build() {
                 <button
                   type="button"
                   onClick={() => startCustom(workout)}
-                  className="h-9 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+                  className="h-11 px-4 rounded-xl text-sm font-semibold inline-flex items-center gap-2"
                   style={{ background: 'var(--brand)', color: 'var(--brand-fg)' }}
                   aria-label={`Start ${workout.name}`}
                 >
@@ -88,7 +88,7 @@ export default function Build() {
                   onClick={() => {
                     if (window.confirm(`Delete “${workout.name}”?`)) deleteWorkout(workout.id);
                   }}
-                  className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+                  className="w-11 h-11 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0"
                   aria-label={`Delete ${workout.name}`}
                   title="Delete workout"
                 >
@@ -115,8 +115,8 @@ export default function Build() {
             className="w-full h-11 pl-9 pr-3 rounded-xl bg-card/60 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-foreground/30"
           />
           {query && (
-            <button type="button" onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground" aria-label="Clear search">
-              <X size={14} />
+            <button type="button" onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl flex items-center justify-center text-muted-foreground" aria-label="Clear search">
+              <X size={17} />
             </button>
           )}
         </div>
@@ -155,7 +155,7 @@ export default function Build() {
             <SearchX size={22} className="mx-auto text-muted-foreground mb-2" />
             <p className="text-sm font-semibold">No exercises found</p>
             <p className="text-xs text-muted-foreground mt-1">Try another search or category.</p>
-            <button type="button" onClick={() => { setQuery(''); setCat('all'); }} className="mt-3 text-xs font-semibold underline underline-offset-4">Reset filters</button>
+            <button type="button" onClick={() => { setQuery(''); setCat('all'); }} className="mt-3 min-h-11 px-3 rounded-lg text-xs font-semibold underline underline-offset-4">Reset filters</button>
           </div>
         )}
       </section>
@@ -171,7 +171,7 @@ function Chip({ active, onClick, label, color }) {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`shrink-0 h-9 px-3.5 rounded-lg text-xs font-semibold border transition-colors ${active ? '' : 'border-border bg-card/40 text-muted-foreground'}`}
+      className={`shrink-0 min-h-11 px-4 rounded-xl text-xs font-semibold border transition-colors ${active ? '' : 'border-border bg-card/40 text-muted-foreground'}`}
       style={active ? { background: `${color}1a`, color, borderColor: `${color}55` } : {}}
     >
       {label}
@@ -239,7 +239,7 @@ function Builder({ onClose, onSaved }) {
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">Custom session</p>
             <h2 id="builder-title" className="text-lg font-bold tracking-tight mt-0.5">Build your workout</h2>
           </div>
-          <button type="button" onClick={onClose} disabled={isPending} className="w-9 h-9 rounded-lg border border-border flex items-center justify-center shrink-0 disabled:opacity-40" aria-label="Close builder">
+          <button type="button" onClick={onClose} disabled={isPending} className="w-11 h-11 rounded-xl border border-border flex items-center justify-center shrink-0 disabled:opacity-40" aria-label="Close builder">
             <X size={16} />
           </button>
         </header>
@@ -280,13 +280,13 @@ function Builder({ onClose, onSaved }) {
                         <span className="block text-[10px] text-muted-foreground truncate">{exercise.variation}</span>
                       </span>
                       <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Move ${exercise.name} up`} className="w-8 h-8 rounded-md border border-border flex items-center justify-center disabled:opacity-25">
-                          <ChevronUp size={15} />
+                        <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Move ${exercise.name} up`} className="w-11 h-11 rounded-xl border border-border flex items-center justify-center disabled:opacity-25 shrink-0">
+                          <ChevronUp size={18} />
                         </button>
                         <button type="button" onClick={() => move(index, 1)} disabled={index === selectedExercises.length - 1} aria-label={`Move ${exercise.name} down`} className="w-8 h-8 rounded-md border border-border flex items-center justify-center disabled:opacity-25">
-                          <ChevronDown size={15} />
+                          <ChevronDown size={18} />
                         </button>
-                        <button type="button" onClick={() => toggle(exercise.id)} aria-label={`Remove ${exercise.name}`} className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground">
+                        <button type="button" onClick={() => toggle(exercise.id)} aria-label={`Remove ${exercise.name}`} className="w-11 h-11 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0">
                           <X size={14} />
                         </button>
                       </div>
@@ -316,7 +316,7 @@ function Builder({ onClose, onSaved }) {
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search movements"
                   aria-label="Search movements to add"
-                  className="w-full h-10 pl-9 pr-3 rounded-lg bg-background/60 border border-border text-sm focus:outline-none focus:border-foreground/30"
+                  className="w-full h-11 pl-9 pr-3 rounded-xl bg-background/60 border border-border text-sm focus:outline-none focus:border-foreground/30"
                 />
               </div>
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2">
@@ -336,7 +336,7 @@ function Builder({ onClose, onSaved }) {
                         type="button"
                         onClick={() => toggle(exercise.id)}
                         aria-pressed={isSelected}
-                        className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg border text-left transition-colors ${isSelected ? 'bg-foreground/[0.04]' : 'border-border bg-background/30 hover:bg-background/70'}`}
+                        className={`w-full flex items-center gap-2.5 p-3 rounded-xl border text-left transition-colors ${isSelected ? 'bg-foreground/[0.04]' : 'border-border bg-background/30 hover:bg-background/70'}`}
                         style={isSelected ? { borderColor: `${color}88` } : {}}
                       >
                         <span className="w-9 h-9 rounded-lg flex items-center justify-center bg-background/70 shrink-0">
@@ -364,7 +364,7 @@ function Builder({ onClose, onSaved }) {
               <span className="text-[11px] text-muted-foreground truncate">
                 {selected.length === 0 ? 'Add at least one exercise to continue.' : `${selected.length} ${selected.length === 1 ? 'exercise' : 'exercises'} · order is saved`}
               </span>
-              {selected.length > 0 && <button type="button" onClick={() => setSelected([])} className="text-[11px] font-semibold text-muted-foreground hover:text-foreground">Clear all</button>}
+              {selected.length > 0 && <button type="button" onClick={() => setSelected([])} className="min-h-11 px-3 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground">Clear all</button>}
             </div>
             <button
               type="submit"
