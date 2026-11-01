@@ -1,15 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSessions } from '@/hooks/useTrainingData';
-import { loadSettings, loadCurrentWeek } from '@/lib/storage';
+import { loadCurrentWeek } from '@/lib/storage';
 import { getActiveProgramId } from '@/lib/programData';
 import { getPhaseForWeek, getWeeklyFocus } from '@/lib/trainingLogic';
-import WeekWidget from '@/components/progress/WeekWidget';
-import PhaseWidget from '@/components/progress/PhaseWidget';
+import OverviewWidget from '@/components/progress/OverviewWidget';
 import PhaseHistoryWidget from '@/components/progress/PhaseHistoryWidget';
 import SkillsWidget from '@/components/progress/SkillsWidget';
 import MuscleBalanceWidget from '@/components/progress/MuscleBalanceWidget';
-import HabitsWidget from '@/components/progress/HabitsWidget';
 import PRsWidget from '@/components/progress/PRsWidget';
 
 export default function Progress() {
@@ -22,23 +20,31 @@ export default function Progress() {
   const isHypertrophy = programId === 'hypertrophy';
 
   return (
-    <div className="px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-10">
-      <header className="pt-2 pb-4">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">{phase.label} · Week {currentWeek} / 8</p>
-        <h1 className="text-2xl font-bold tracking-tight mt-0.5">Progress</h1>
-        <p className="text-xs text-muted-foreground mt-1">{focus.focus} — {focus.note}</p>
+    <main className="px-4 sm:px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-8">
+      <header className="mb-4 sm:mb-5">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">Your training cycle</p>
+        <div className="mt-1 flex items-baseline justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
+          <span className="shrink-0 text-xs text-muted-foreground">Week {currentWeek} / 8</span>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">{focus.focus}</p>
       </header>
 
-      <div className="grid grid-cols-6 gap-3" style={{ gridAutoRows: 'minmax(140px, auto)' }}>
-        <WeekWidget sessions={sessions} onClick={() => navigate('/progress/week')} className="col-span-6 row-span-2" />
-        <PhaseWidget currentWeek={currentWeek} programId={programId} onClick={() => navigate('/progress/phase')} className="col-span-3" />
-        <HabitsWidget sessions={sessions} currentWeek={currentWeek} programId={programId} onClick={() => navigate('/progress/habits')} className="col-span-3" />
+      <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 sm:gap-4">
+        <OverviewWidget
+          sessions={sessions}
+          currentWeek={currentWeek}
+          programId={programId}
+          phase={phase}
+          onClick={() => navigate('/progress/week')}
+          className="sm:col-span-6"
+        />
         <PhaseHistoryWidget
           sessions={sessions}
           currentWeek={currentWeek}
           programId={programId}
-          onWeekClick={(w) => navigate(`/progress/phase?week=${w}`)}
-          className="col-span-6"
+          onWeekClick={(week) => navigate(`/progress/phase?week=${week}`)}
+          className="sm:col-span-6"
         />
         {isHypertrophy ? (
           <MuscleBalanceWidget
@@ -46,13 +52,21 @@ export default function Progress() {
             currentWeek={currentWeek}
             programId={programId}
             onClick={() => navigate('/progress/muscle-balance')}
-            className="col-span-4"
+            className="sm:col-span-4"
           />
         ) : (
-          <SkillsWidget sessions={sessions} onClick={() => navigate('/progress/skills')} className="col-span-4" />
+          <SkillsWidget
+            sessions={sessions}
+            onClick={() => navigate('/progress/skills')}
+            className="sm:col-span-4"
+          />
         )}
-        <PRsWidget sessions={sessions} onClick={() => navigate('/progress/records')} className="col-span-2" />
+        <PRsWidget
+          sessions={sessions}
+          onClick={() => navigate('/progress/records')}
+          className="sm:col-span-2"
+        />
       </div>
-    </div>
+    </main>
   );
 }
