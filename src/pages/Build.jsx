@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { triggerFeedback } from '@/lib/workoutFeedback';
 import {
   Plus, Search, X, Play, Trash2, ChevronRight, ChevronUp, ChevronDown,
   Check, Dumbbell, ListOrdered, SearchX,
@@ -35,6 +36,7 @@ export default function Build() {
     }
     const session = buildCustomSession(workout.name, workout.exercises, loadCurrentWeek());
     saveActiveSession(session);
+    triggerFeedback('workoutStart');
     navigate('/workout');
   };
 
