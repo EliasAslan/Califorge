@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Search, X, Play, Trash2, ChevronRight, ChevronUp, ChevronDown,
@@ -224,8 +225,8 @@ function Builder({ onClose, onSaved }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in" onClick={() => !isPending && onClose()}>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in" onClick={() => !isPending && onClose()}>
       <section
         role="dialog"
         aria-modal="true"
@@ -376,6 +377,7 @@ function Builder({ onClose, onSaved }) {
           </footer>
         </form>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
