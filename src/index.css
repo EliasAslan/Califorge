@@ -799,10 +799,13 @@
    skipped (reduced motion, background tab). The keyframes still animate. */
 .console-sheet[data-state='open'] { transform: translate3d(0, 0, 0); }
 .console-sheet[data-state='closed'] { transform: translate3d(0, 100%, 0); }
+.console-sheet-wheel {
+  max-height: min(88dvh, 640px);
+}
 
 .console-wheel-wrap {
   position: relative;
-  height: 220px;
+  height: clamp(220px, 30dvh, 300px);
   overflow: hidden;
 }
 .console-wheel {

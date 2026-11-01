@@ -209,6 +209,8 @@ export default function WheelSheet({
       onOpenChange={onOpenChange}
       title={title}
       description={description}
+      className="console-sheet-wheel"
+      onOverlayClick={commit}
       footer={
         <div className="console-wheel-footer">
           <button
