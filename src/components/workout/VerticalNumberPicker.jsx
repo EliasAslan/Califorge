@@ -57,7 +57,7 @@ export default function VerticalNumberPicker({
           </div>
           <div className="h-5 text-center text-[11px] text-muted-foreground/50 tnum">{current - step >= min ? current - step : ''}</div>
         </div>
-        <p className="text-[10px] text-muted-foreground text-center mt-1">Drag up or down</p>
+        <div className="flex items-center justify-center gap-2 mt-1"><p className="text-[10px] text-muted-foreground">Drag up or down</p><button type="button" onClick={() => { const entered = window.prompt(label ? `Enter ${label}` : "Enter value", String(current)); if (entered !== null && entered.trim() !== "" && Number.isFinite(Number(entered))) change(Number(entered)); }} className="text-[10px] underline text-muted-foreground hover:text-foreground">Type value</button></div>
       </div>
       <button type="button" onClick={() => change(current + step)} aria-label={label ? `Increase ${label}` : 'Increase'}
         className="w-10 h-10 rounded-xl border border-border bg-card/60 flex items-center justify-center active:scale-95 shrink-0">
