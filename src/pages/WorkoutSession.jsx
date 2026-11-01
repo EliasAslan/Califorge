@@ -679,6 +679,10 @@ export default function WorkoutSession() {
             <p className="console-category">{cur.category}</p>
             <h1 className="console-title">{cur.name}</h1>
             <p className="mt-1 text-[13px] text-[var(--console-steel)]">{cur.variation}</p>
+            <p className="console-set-context">
+              Set {targetCursor.setIndex + 1} of {cur.sets.length}
+              {set.completed ? (set.skipped ? ' · Skipped' : ' · Logged') : ' · Ready to log'}
+            </p>
 
             {hasLevels && (
               <ProgressionSelector
@@ -688,6 +692,25 @@ export default function WorkoutSession() {
                 accent={accent}
               />
             )}
+
+            <div className="console-ladder" aria-label={`${cur.name} set progress`}>
+              {cur.sets.map((rowSet, index) => {
+                const isCurrent = index === targetCursor.setIndex;
+                const state = rowSet.completed ? 'is-past' : '';
+                return (
+                  <div
+                    key={rowSet.id || index}
+                    className={`console-ladder-step ${state} ${isCurrent ? 'is-current' : ''}`}
+                    aria-current={isCurrent ? 'step' : undefined}
+                  >
+                    <div className="console-ladder-bar" />
+                    <span className="console-ladder-label">
+                      {rowSet.completed ? 'Done' : `Set ${index + 1}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
 
             <div className="console-readout-row">
               <div className="console-readout-cell">

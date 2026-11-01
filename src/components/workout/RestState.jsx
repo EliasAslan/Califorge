@@ -57,7 +57,10 @@ export default function RestState({
           aria-valuemax={Math.max(totalDurationSec, remaining)}
           aria-valuenow={remaining}
         >
-          <div className="console-rest-fill" style={{ width: `${pct}%`, background: accent }} />
+          <div
+            className="console-rest-fill"
+            style={{ transform: `scaleX(${pct / 100})`, background: accent }}
+          />
         </div>
 
         {nextExercise && (

@@ -77,24 +77,45 @@ export default function WorkoutListLayout({
           const accent = categoryColor(exercise.category);
           const completed = exercise.sets.filter((s) => s.completed).length;
           const isSkill = exercise.type === 'skill' || exercise.type === 'prehab';
+          const exerciseProgress = exercise.sets.length ? completed / exercise.sets.length : 0;
+          const isExerciseCurrent = activeEi === exerciseIndex;
 
           return (
-            <section key={`${exercise.exerciseId}-${exerciseIndex}`} className="pb-3 pt-5">
-              <div className="flex items-center gap-2 pb-1">
-                <span
-                  aria-hidden="true"
-                  className="h-3.5 w-[3px] shrink-0"
-                  style={{ background: accent }}
-                />
-                <h3 className="min-w-0 flex-1 truncate text-[14px] font-bold tracking-[-0.02em] text-[var(--console-chalk)]">
-                  {exercise.name}
-                </h3>
-                <span className="text-[11px] font-semibold tabular-nums text-[var(--console-steel)]">
+            <section
+              key={`${exercise.exerciseId}-${exerciseIndex}`}
+              className={`console-list-exercise ${isExerciseCurrent ? 'is-active' : ''}`}
+            >
+              <div className="console-list-exercise-head">
+                <div className="min-w-0 flex-1">
+                  <p className="console-list-exercise-kicker">
+                    {String(exerciseIndex + 1).padStart(2, '0')} / {String(session.exercises.length).padStart(2, '0')}
+                    {isExerciseCurrent && <span className="console-list-current-label">Now</span>}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className="h-3.5 w-[3px] shrink-0"
+                      style={{ background: accent }}
+                    />
+                    <h3 className="min-w-0 truncate text-[15px] font-bold tracking-[-0.02em] text-[var(--console-chalk)]">
+                      {exercise.name}
+                    </h3>
+                  </div>
+                </div>
+                <span className="console-list-exercise-count">
                   {completed}/{exercise.sets.length}
                 </span>
               </div>
+              <div className="console-list-exercise-track" aria-hidden="true">
+                <span
+                  style={{
+                    transform: `scaleX(${exerciseProgress})`,
+                    background: accent,
+                  }}
+                />
+              </div>
 
-              <div>
+              <div className="console-list-rows">
                 {exercise.sets.map((rowSet, setIndex) => {
                   const key = `${exerciseIndex}-${setIndex}`;
                   const isCurrent = activeEi === exerciseIndex && activeSi === setIndex;
@@ -140,7 +161,7 @@ export default function WorkoutListLayout({
                       </button>
 
                       {isExpanded && (
-                        <div className="border-b border-[var(--console-line)] pb-3 pt-2">
+                        <div className="console-list-editor border-b border-[var(--console-line)] pb-3 pt-2">
                           <SetInputs
                             exercise={exercise}
                             set={rowSet}
@@ -171,7 +192,7 @@ export default function WorkoutListLayout({
                               <button
                                 type="button"
                                 onClick={() => onCompleteAt(exerciseIndex, setIndex)}
-                                className="console-primary"
+                                className="console-primary console-primary-compact"
                               >
                                 <Check size={16} strokeWidth={2.6} />
                                 {isSkill ? 'Mark done' : 'Complete set'}

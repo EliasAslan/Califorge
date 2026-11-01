@@ -114,9 +114,8 @@ export default function WheelSheet({
 
   const handleScroll = () => {
     if (settleRef.current) clearTimeout(settleRef.current);
-    settleRef.current = setTimeout(() => {
-      const element = scrollRef.current;
-      if (!element) return;
+    const element = scrollRef.current;
+    if (element && values.length > 0) {
       const index = Math.max(0, Math.min(values.length - 1, Math.round(element.scrollTop / ITEM_H)));
       const next = values[index];
       if (next !== draftRef.current) {
@@ -130,6 +129,14 @@ export default function WheelSheet({
           }
         }
       }
+    }
+    settleRef.current = setTimeout(() => {
+      const element = scrollRef.current;
+      if (!element) return;
+      const index = Math.max(0, Math.min(values.length - 1, Math.round(element.scrollTop / ITEM_H)));
+      const next = values[index];
+      element.scrollTo({ top: index * ITEM_H, behavior: 'auto' });
+      setDraft(next);
     }, 55);
   };
 
@@ -244,7 +251,7 @@ export default function WheelSheet({
           </button>
         )}
         <span className="pb-1 text-[11px] font-medium text-[var(--console-steel)]">
-          {typing ? 'Enter to set' : 'Tap to type'}
+          {typing ? 'Enter to set' : 'Swipe or tap a value'}
         </span>
       </div>
 
