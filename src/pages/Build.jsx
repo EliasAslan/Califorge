@@ -29,7 +29,7 @@ export default function Build() {
 
   const startCustom = (workout) => {
     if (!workout.exercises?.length) {
-      toast({ title: 'This workout is empty', description: 'Edit it or create a new workout with at least one exercise.' });
+      toast({ title: 'This workout is empty', description: 'Create a new workout with at least one exercise.' });
       return;
     }
     const session = buildCustomSession(workout.name, workout.exercises, loadCurrentWeek());
