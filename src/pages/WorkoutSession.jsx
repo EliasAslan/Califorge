@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  X, Info, Check, SkipForward, Pause, Play, MoreVertical, Flag, Trash2,
+  X, Info, Check, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2,
   StickyNote,
 } from 'lucide-react';
 import { categoryColor, getExercise, MODES } from '@/lib/programData';
@@ -333,6 +333,25 @@ export default function WorkoutSession() {
     });
   };
 
+  const moveToExercise = (delta) => {
+    const currentIndex = targetCursor.exerciseIndex;
+    const nextIndex = currentIndex + delta;
+    if (nextIndex < 0 || nextIndex >= session.exercises.length) return;
+    const nextExercise = session.exercises[nextIndex];
+    setMissingAt(null);
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      next.cursor = {
+        exerciseIndex: nextIndex,
+        setIndex: delta > 0 ? 0 : Math.max(0, nextExercise.sets.length - 1),
+      };
+      next.phase = 'work';
+      next.restEndsAt = null;
+      next.pendingNext = null;
+      return next;
+    });
+  };
+
   const openSheet = (field, exerciseIndex = targetCursor.exerciseIndex, setIndex = targetCursor.setIndex) => {
     setSheet({ field, exerciseIndex, setIndex });
     setSheetOpen(true);
@@ -459,6 +478,28 @@ export default function WorkoutSession() {
                   className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-[var(--console-line)] px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:text-[var(--console-chalk)]"
                 >
                   <Flag size={14} /> Finish workout
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setShowMenu(false);
+                    setShowCue(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:text-[var(--console-chalk)]"
+                >
+                  <Info size={14} /> Form cue
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setShowMenu(false);
+                    setShowNote(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:text-[var(--console-chalk)]"
+                >
+                  <StickyNote size={14} /> Note
                 </button>
                 <button
                   type="button"
@@ -766,29 +807,31 @@ export default function WorkoutSession() {
           )}
 
           <div className="console-secondary-actions">
-            {!paused ? (
-              <button type="button" onClick={togglePause} className="console-text-action">
-                <Pause size={13} /> Pause
-              </button>
-            ) : (
-              <span />
-            )}
-            {!paused && !isSkill ? (
-              <button
-                type="button"
-                onClick={() => skipSetAt(targetCursor.exerciseIndex, targetCursor.setIndex)}
-                className="console-text-action"
-              >
-                <SkipForward size={13} /> Skip set
-              </button>
-            ) : (
-              <span />
-            )}
-            <button type="button" onClick={() => setShowCue(true)} className="console-text-action">
-              <Info size={13} /> Form cue
+            <button
+              type="button"
+              onClick={() => moveToExercise(-1)}
+              disabled={paused || targetCursor.exerciseIndex === 0}
+              className="console-text-action"
+              aria-label="Previous exercise"
+            >
+              <ChevronLeft size={14} /> Previous
             </button>
-            <button type="button" onClick={() => setShowNote(true)} className="console-text-action">
-              <StickyNote size={13} /> Note
+            <button
+              type="button"
+              onClick={togglePause}
+              className="console-text-action"
+            >
+              {paused ? <Play size={13} /> : <Pause size={13} />}
+              {paused ? 'Resume' : 'Pause'}
+            </button>
+            <button
+              type="button"
+              onClick={() => moveToExercise(1)}
+              disabled={paused || targetCursor.exerciseIndex === session.exercises.length - 1}
+              className="console-text-action"
+              aria-label="Next exercise"
+            >
+              Next <ChevronRight size={14} />
             </button>
           </div>
         </footer>
