@@ -433,6 +433,6 @@
 
 .dock-transition {
   transition-property: all;
-  transition-duration: 300ms;
+  transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
