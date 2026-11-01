@@ -31,9 +31,9 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.75rem;
-    --font-heading: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-display: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-heading: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-body: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     /* category accents */
@@ -49,6 +49,9 @@
     --brand: #3FB6F8;
     --brand-fg: #06222e;
     --page-bg: #121212;
+
+    /* live height of the bottom dock, measured by BottomNav */
+    --dock-height: 5.5rem;
   }
 
   html.theme-light {
@@ -130,11 +133,6 @@
 }
 .animate-scale-in { animation: scale-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-@keyframes pulse-ring {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-.animate-pulse-ring { animation: pulse-ring 1.6s ease-in-out infinite; }
 /* APEX visual system: quiet surfaces, athletic hierarchy, technical details. */
 .apex-page {
   width: 100%;
@@ -431,49 +429,495 @@
 }
 
 
-.dock-transition {
-  transition-property: all;
-  transition-duration: 180ms;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+/* ── In-session console ─────────────────────────────────────────────────────
+   Chalk on rubber. Hairlines and type carry the structure; color is reserved
+   for movement pattern and live state. Used by /workout and /summary. */
+
+.console-page {
+  --console-bg: #0B0C0D;
+  --console-surface: #15171A;
+  --console-surface-2: #1A1D20;
+  --console-line: #2A2D31;
+  --console-chalk: #F1EEE7;
+  --console-steel: #8A9096;
+  --console-oxide: #C4553F;
+
+  /* Remap the app tokens so Tailwind utilities resolve to console values. */
+  --background: 210 9% 4.5%;
+  --background-2: 210 9% 6%;
+  --foreground: 40 20% 92%;
+  --card: 210 10% 9%;
+  --card-2: 210 10% 11%;
+  --card-foreground: 40 20% 92%;
+  --muted: 210 8% 12%;
+  --muted-foreground: 210 5% 56%;
+  --border: 210 7% 18%;
+  --input: 210 7% 18%;
+  --ring: 40 20% 92%;
+  --destructive: 10 53% 51%;
+  --destructive-foreground: 0 0% 98%;
+
+  min-height: 100dvh;
+  background: var(--console-bg);
+  color: var(--console-chalk);
+  font-family: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
 }
 
+.console-page :focus-visible {
+  outline: 2px solid var(--console-chalk);
+  outline-offset: 2px;
+}
 
-/* Athletic workout surfaces and set capsules */
-.athletic-card {
+.console-shell {
   position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100dvh;
+  max-width: 520px;
+  margin-inline: auto;
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  padding-inline: 20px;
   overflow: hidden;
-  border-radius: 20px;
-  border: 1px solid hsl(var(--border) / 0.85);
-  background: linear-gradient(145deg, hsl(var(--card) / 0.88), hsl(var(--card-2) / 0.65));
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
-.set-capsule {
+.console-doc {
+  min-height: 100dvh;
+  background: var(--console-bg);
+  color: var(--console-chalk);
+  font-family: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+}
+.console-doc-inner {
+  max-width: 520px;
+  margin-inline: auto;
+  padding: 28px 20px calc(28px + env(safe-area-inset-bottom));
+}
+
+.console-rail {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--console-line);
+  padding-bottom: 10px;
+}
+
+.console-icon-button {
   display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  height: 24px;
-  min-width: 24px;
-  padding: 0 6px;
-  border-radius: 8px;
+  border: 1px solid var(--console-line);
+  border-radius: 11px;
+  color: var(--console-steel);
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+.console-icon-button:hover { color: var(--console-chalk); border-color: #3A3E43; }
+.console-icon-button:active { transform: scale(0.96); }
+
+.console-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 0 14px;
+}
+.console-signal {
+  width: 34px;
+  height: 3px;
+  margin-bottom: 12px;
+  background: var(--console-signal, var(--brand));
+}
+.console-category {
+  color: var(--console-signal, var(--brand));
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: capitalize;
+}
+.console-title {
+  margin-top: 6px;
+  font-size: clamp(2rem, 9vw, 2.6rem);
+  font-weight: 800;
+  font-stretch: 108%;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.console-watermark {
+  position: absolute;
+  top: -6px;
+  right: -18px;
+  width: 168px;
+  height: 168px;
+  color: var(--console-chalk);
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.console-readout-row {
+  display: flex;
+  margin-top: 16px;
+  border-top: 1px solid var(--console-line);
+  border-bottom: 1px solid var(--console-line);
+}
+.console-readout-cell {
+  min-width: 0;
+  flex: 1;
+  padding: 9px 10px 10px 0;
+}
+.console-readout-cell + .console-readout-cell {
+  border-left: 1px solid var(--console-line);
+  padding-left: 12px;
+}
+.console-readout-label {
+  display: block;
+  color: var(--console-steel);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.console-readout-value {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--console-chalk);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console-ladder {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 14px;
+}
+.console-ladder-step {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+.console-ladder-bar {
+  height: 3px;
+  background: var(--console-line);
+  transition: background 160ms ease;
+}
+.console-ladder-step.is-past .console-ladder-bar {
+  background: color-mix(in srgb, var(--console-signal, var(--brand)) 45%, var(--console-line));
+}
+.console-ladder-step.is-current .console-ladder-bar {
+  background: var(--console-signal, var(--brand));
+}
+.console-ladder-label {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--console-steel);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.console-ladder-step.is-current .console-ladder-label {
+  color: var(--console-chalk);
+  font-weight: 700;
+}
+
+.console-input {
+  padding-top: 14px;
+}
+.console-field-label {
+  display: block;
+  color: var(--console-steel);
   font-size: 11px;
+  font-weight: 600;
+}
+.console-value {
+  display: block;
+  margin-top: 2px;
+  color: var(--console-chalk);
+  font-size: clamp(3.1rem, 15.5vw, 4.3rem);
+  font-weight: 800;
+  font-stretch: 104%;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+}
+.console-value-unit {
+  margin-left: 4px;
+  color: var(--console-steel);
+  font-size: 0.28em;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.console-value-placeholder { color: var(--console-steel); opacity: 0.55; }
+.console-value-compact {
+  display: block;
+  margin-top: 2px;
+  color: var(--console-chalk);
+  font-size: 2rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  transition: all 180ms ease;
+  line-height: 1;
+  letter-spacing: -0.045em;
 }
-.set-capsule-done {
-  background: color-mix(in srgb, #10B981 16%, transparent);
-  border: 1px solid color-mix(in srgb, #10B981 38%, transparent);
-  color: #10B981;
+
+.console-secondary-row {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--console-line);
+  color: var(--console-steel);
+  text-align: left;
 }
-.set-capsule-active {
-  background: var(--brand);
-  color: var(--brand-fg);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--brand) 36%, transparent);
+.console-secondary-row:active { opacity: 0.7; }
+.console-secondary-value {
+  color: var(--console-chalk);
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.set-capsule-pending {
-  background: hsl(var(--muted) / 0.7);
-  border: 1px solid hsl(var(--border) / 0.8);
-  color: hsl(var(--muted-foreground));
+
+.console-effort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--console-line);
+  padding: 8px 0;
+}
+.console-effort-label {
+  margin-right: auto;
+  color: var(--console-steel);
+  font-size: 11px;
+  font-weight: 600;
+}
+.console-effort-chip {
+  display: inline-flex;
+  width: 34px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--console-line);
+  border-radius: 8px;
+  color: var(--console-steel);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.console-effort-chip.is-on {
+  border-color: var(--console-chalk);
+  background: var(--console-chalk);
+  color: var(--console-bg);
+}
+
+.console-action {
+  border-top: 1px solid var(--console-line);
+  padding-top: 10px;
+}
+.console-primary {
+  display: flex;
+  width: 100%;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  background: var(--console-chalk);
+  color: #0B0C0D;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+.console-primary:active { transform: scale(0.99); }
+.console-primary:disabled { opacity: 0.45; }
+.console-secondary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.console-text-action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  color: var(--console-steel);
+  font-size: 12px;
+  font-weight: 600;
+}
+.console-text-action:hover { color: var(--console-chalk); }
+.console-text-action:disabled { opacity: 0.35; }
+
+.console-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  border-left: 2px solid #D99A3E;
+  padding: 8px 0 8px 10px;
+  color: #E3B56B;
+  font-size: 12px;
+}
+
+.console-sheet {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  width: 100%;
+  max-width: 520px;
+  max-height: 88dvh;
+  margin-inline: auto;
+  flex-direction: column;
+  border-top: 1px solid var(--console-line);
+  border-radius: 20px 20px 0 0;
+  background: var(--console-surface);
+  color: var(--console-chalk);
+  outline: none;
+}
+/* Base positions so the sheet is correct even if the slide animation is
+   skipped (reduced motion, background tab). The keyframes still animate. */
+.console-sheet[data-state='open'] { transform: translate3d(0, 0, 0); }
+.console-sheet[data-state='closed'] { transform: translate3d(0, 100%, 0); }
+
+.console-wheel-wrap {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+.console-wheel {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+.console-wheel::-webkit-scrollbar { display: none; }
+.console-wheel-item {
+  display: flex;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: center;
+  color: var(--console-steel);
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.5;
+  transition: font-size 100ms ease, opacity 100ms ease, color 100ms ease;
+}
+.console-wheel-item.is-selected {
+  color: var(--console-chalk);
+  font-size: 26px;
+  font-weight: 800;
+  opacity: 1;
+}
+.console-wheel-band {
+  position: absolute;
+  inset-inline: 0;
+  top: 88px;
+  height: 44px;
+  border-top: 1px solid var(--console-line);
+  border-bottom: 1px solid var(--console-line);
+  pointer-events: none;
+}
+.console-wheel-fade {
+  position: absolute;
+  inset-inline: 0;
+  height: 54px;
+  pointer-events: none;
+}
+.console-wheel-fade-top {
+  top: 0;
+  background: linear-gradient(var(--console-surface), transparent);
+}
+.console-wheel-fade-bottom {
+  bottom: 0;
+  background: linear-gradient(transparent, var(--console-surface));
+}
+
+.console-chip {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--console-line);
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--console-steel);
+  font-size: 12px;
+  font-weight: 600;
+}
+.console-chip.is-on {
+  border-color: var(--console-chalk);
+  background: var(--console-chalk);
+  color: var(--console-bg);
+}
+
+.console-rest-time {
+  color: var(--console-chalk);
+  font-size: clamp(4.5rem, 24vw, 7rem);
+  font-weight: 800;
+  font-stretch: 106%;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+}
+.console-rest-track {
+  height: 4px;
+  background: var(--console-line);
+}
+.console-rest-fill {
+  height: 100%;
+  background: var(--console-signal, var(--brand));
+  transition: width 300ms linear;
+}
+
+.console-list-row {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--console-line);
+  padding: 6px 0;
+  text-align: left;
+}
+.console-list-row.is-current {
+  box-shadow: inset 2px 0 0 var(--console-chalk);
+  padding-left: 10px;
+}
+.console-list-index {
+  display: inline-flex;
+  width: 22px;
+  flex: 0 0 auto;
+  justify-content: center;
+  color: var(--console-steel);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.console-list-index.is-done { color: #7FA86A; }
+.console-list-index.is-current { color: var(--console-chalk); }
+
+@media (prefers-reduced-motion: reduce) {
+  .console-page *,
+  .console-page *::before,
+  .console-page *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

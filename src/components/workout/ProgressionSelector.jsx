@@ -1,45 +1,31 @@
 import React from 'react';
 
-// Per-set progression picker for exercises with progression ladders
-// (e.g. Front Lever, Planche). The chosen level is stored on the set.
+// A progression is a sequence, so it is drawn as a segmented track rather than
+// a row of chips. Tapping the active segment clears it.
 export default function ProgressionSelector({ levels, value, onChange, accent = '#3FB6F8' }) {
   if (!levels || !levels.length) return null;
 
+  const current = levels.indexOf(value);
+
   return (
-    <div className="py-1">
-      <div className="flex items-center justify-between mb-1.5">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Progression level</p>
-        <span className="text-[11px] font-semibold text-foreground">{value || 'Select level'}</span>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {levels.map((lvl) => {
-          const sel = value === lvl;
-          return (
-            <button
-              key={lvl}
-              type="button"
-              onClick={() => onChange(sel ? null : lvl)}
-              className={`h-8 px-3 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
-                sel
-                  ? 'border-transparent shadow-sm'
-                  : 'border-border/80 bg-card/40 text-muted-foreground hover:text-foreground hover:border-border'
-              }`}
-              style={
-                sel
-                  ? {
-                      background: `color-mix(in srgb, ${accent} 22%, hsl(var(--card)))`,
-                      borderColor: accent,
-                      color: accent,
-                      boxShadow: `0 0 12px ${accent}33`,
-                    }
-                  : undefined
-              }
-            >
-              {lvl}
-            </button>
-          );
-        })}
-      </div>
+    <div className="console-ladder" role="group" aria-label="Progression level" style={{ '--console-signal': accent }}>
+      {levels.map((level, index) => {
+        const isCurrent = value === level;
+        const isPast = current > -1 && index < current;
+        return (
+          <button
+            key={level}
+            type="button"
+            onClick={() => onChange(isCurrent ? null : level)}
+            aria-pressed={isCurrent}
+            title={level}
+            className={`console-ladder-step ${isPast ? 'is-past' : ''} ${isCurrent ? 'is-current' : ''}`}
+          >
+            <span className="console-ladder-bar" />
+            <span className="console-ladder-label">{level}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

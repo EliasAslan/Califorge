@@ -1,45 +1,68 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Info, Check, SkipForward, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2, AlertCircle } from 'lucide-react';
+import {
+  X, Info, Check, SkipForward, Pause, Play, MoreVertical, Flag, Trash2,
+  StickyNote,
+} from 'lucide-react';
 import { categoryColor, getExercise, MODES } from '@/lib/programData';
-import { formatTarget, getLastPerformance, formatLastPerformance, formatClock, getRepRecommendation } from '@/lib/trainingLogic';
-import { loadActiveSession, saveActiveSession, clearActiveSession, loadWorkoutLayout, saveWorkoutLayout, STALE_MS } from '@/lib/storage';
+import {
+  formatTarget, getLastPerformance, formatLastPerformance, formatClock, getRepRecommendation,
+} from '@/lib/trainingLogic';
+import {
+  loadActiveSession, saveActiveSession, clearActiveSession, loadWorkoutLayout, saveWorkoutLayout,
+  loadExerciseIncrement, saveExerciseIncrement, STALE_MS,
+} from '@/lib/storage';
 import { useSessions } from '@/hooks/useTrainingData';
+import useConsoleChrome from '@/hooks/useConsoleChrome';
 import ExerciseVisual from '@/components/ExerciseVisual';
-import SetInputs, { missingFields } from '@/components/workout/SetInputs';
+import SetInputs, { missingFields, EffortRow } from '@/components/workout/SetInputs';
 import WorkoutListLayout from '@/components/workout/WorkoutListLayout';
-import RestTimer from '@/components/workout/RestTimer';
-import FloatingRestPill from '@/components/workout/FloatingRestPill';
-import ExerciseNote from '@/components/workout/ExerciseNote';
 import ProgressionSelector from '@/components/workout/ProgressionSelector';
 import VariationSwitcher from '@/components/workout/VariationSwitcher';
+import RestState from '@/components/workout/RestState';
+import WheelSheet from '@/components/workout/WheelSheet';
+import ConsoleSheet from '@/components/workout/ConsoleSheet';
 
-const GREEN = '#10B981';
 const LAYOUTS = [
-  { id: 'focus', label: 'Focus' },
-  { id: 'minimal', label: 'Minimal' },
-  { id: 'list', label: 'List' },
+  { id: 'focus', label: 'Guided' },
+  { id: 'list', label: 'Overview' },
 ];
+
+const FIELD_KEY = { reps: 'actualReps', weight: 'weight', hold: 'actualSec' };
+const FIELD_TITLE = { reps: 'Reps', weight: 'Added weight', hold: 'Hold' };
+const FIELD_UNIT = { reps: '', weight: 'kg', hold: 's' };
+const FIELD_MAX = { reps: 100, weight: 200, hold: 600 };
+const DEFAULT_STEP = { reps: 1, weight: 2.5, hold: 5 };
+const STEP_OPTIONS = { reps: [1, 2, 5], weight: [1, 2.5, 5, 10], hold: [1, 5, 10, 30] };
+
+const first = (value) => (Array.isArray(value) ? value[0] : value ?? undefined);
 
 export default function WorkoutSession() {
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
   const [loaded, setLoaded] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [missingWarning, setMissingWarning] = useState(false);
-  const [restViewMode, setRestViewMode] = useState('pill'); // 'pill' | 'fullscreen'
+  const [missingAt, setMissingAt] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [layout, setLayout] = useState(() => loadWorkoutLayout());
+  const [sheet, setSheet] = useState(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [showCue, setShowCue] = useState(false);
+  const [showNote, setShowNote] = useState(false);
+  const [, setIncrementTick] = useState(0);
   const { data: sessions = [] } = useSessions();
+  useConsoleChrome();
 
   useEffect(() => {
-    const s = loadActiveSession();
-    if (!s) { navigate('/'); return; }
+    const stored = loadActiveSession();
+    if (!stored) {
+      navigate('/');
+      return;
+    }
     // don't count time the app was closed as active training
-    if (s.resumeAt && !s.paused) s.resumeAt = Date.now();
-    setSession(s);
+    if (stored.resumeAt && !stored.paused) stored.resumeAt = Date.now();
+    setSession(stored);
     setLoaded(true);
   }, [navigate]);
 
@@ -47,11 +70,13 @@ export default function WorkoutSession() {
     if (session) saveActiveSession(session);
   }, [session]);
 
-  useEffect(() => { saveWorkoutLayout(layout); }, [layout]);
+  useEffect(() => {
+    saveWorkoutLayout(layout);
+  }, [layout]);
 
   // live workout timer (active time only; frozen while paused).
   useEffect(() => {
-    if (!session || session.paused) return;
+    if (!session || session.paused) return undefined;
     const id = setInterval(() => {
       setNow(Date.now());
       setSession((prev) => {
@@ -69,43 +94,70 @@ export default function WorkoutSession() {
     return () => clearInterval(id);
   }, [session]);
 
+  const finishRest = useCallback(() => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      next.phase = 'work';
+      next.cursor = next.pendingNext || next.cursor;
+      next.restEndsAt = null;
+      next.pendingNext = null;
+      return next;
+    });
+  }, []);
+
+  const adjustRest = useCallback((delta) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      next.restEndsAt = Math.max(Date.now(), (next.restEndsAt || Date.now()) + delta * 1000);
+      return next;
+    });
+  }, []);
+
   if (!loaded || !session) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-border border-t-brand rounded-full animate-spin" />
+      <div className="console-page flex min-h-dvh items-center justify-center">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--console-line)] border-t-[var(--console-chalk)]" />
       </div>
     );
   }
 
-  // Active or upcoming exercise
   const isRest = session.phase === 'rest';
   const targetCursor = isRest && session.pendingNext ? session.pendingNext : session.cursor;
   const cur = session.exercises[targetCursor.exerciseIndex];
   const set = cur.sets[targetCursor.setIndex];
   const accent = categoryColor(cur.category);
-  const totalSets = session.exercises.reduce((n, e) => n + e.sets.length, 0);
-  const doneSets = session.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0);
+  const totalSets = session.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
+  const doneSets = session.exercises.reduce(
+    (total, exercise) => total + exercise.sets.filter((s) => s.completed).length,
+    0,
+  );
   const progress = totalSets ? doneSets / totalSets : 0;
   const elapsed = (session.activeMs || 0) + (session.resumeAt && !session.paused ? now - session.resumeAt : 0);
   const paused = !!session.paused;
-  const totalEx = session.exercises.length;
+  const focusKey = `${targetCursor.exerciseIndex}:${targetCursor.setIndex}`;
+  const showMissing = missingAt === focusKey;
+  const missing = showMissing ? missingFields(cur.type, set) : [];
+  const isSkill = cur.type === 'skill' || cur.type === 'prehab';
 
-  // flat set list for back/next navigation
-  const flat = [];
-  session.exercises.forEach((e, ei) => e.sets.forEach((s, si) => flat.push({ ei, si })));
-  const curFlatIdx = flat.findIndex((p) => p.ei === targetCursor.exerciseIndex && p.si === targetCursor.setIndex);
-  const atFirst = curFlatIdx <= 0;
-  const atLast = curFlatIdx >= flat.length - 1;
+  const exDef = getExercise(cur.exerciseId);
+  const lastPerfData = getLastPerformance(cur.exerciseId, sessions);
+  const lastPerf = lastPerfData ? formatLastPerformance(lastPerfData.sets, lastPerfData.type) : null;
+  const rec = getRepRecommendation(cur.exerciseId, sessions, session.week);
+  const hasLevels = !!exDef?.progressionLevels?.length;
+  const nextLoad = rec?.weight != null ? `+${rec.weight} kg` : null;
 
-  const update = (patch) => {
-    setMissingWarning(false);
+  const updateAt = (exerciseIndex, setIndex, patch) => {
+    setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
-      const c = next.exercises[targetCursor.exerciseIndex];
-      Object.assign(c.sets[targetCursor.setIndex], patch);
+      Object.assign(next.exercises[exerciseIndex].sets[setIndex], patch);
       return next;
     });
   };
+
+  const update = (patch) => updateAt(targetCursor.exerciseIndex, targetCursor.setIndex, patch);
 
   const updateExerciseNote = (text) => {
     setSession((prev) => {
@@ -115,40 +167,40 @@ export default function WorkoutSession() {
     });
   };
 
-  const updateProgression = (lvl) => {
+  const updateProgression = (level) => {
     setSession((prev) => {
       const next = structuredClone(prev);
-      const c = next.exercises[targetCursor.exerciseIndex];
-      c.sets[targetCursor.setIndex].progression = lvl;
-      c.progression = lvl;
+      const exercise = next.exercises[targetCursor.exerciseIndex];
+      exercise.sets[targetCursor.setIndex].progression = level;
+      exercise.progression = level;
       return next;
     });
   };
 
   const switchExercise = (targetId) => {
-    setMissingWarning(false);
+    setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
-      const c = next.exercises[targetCursor.exerciseIndex];
-      const def = getExercise(targetId);
-      if (!def) return prev;
-      c.originalId = c.originalId || c.exerciseId;
-      c.exerciseId = def.id;
-      c.name = def.name;
-      c.variation = def.variation;
-      c.visualId = def.visualId;
-      c.category = def.category;
-      c.type = def.type;
-      c.perSide = !!def.perSide;
-      c.durationMin = def.durationMin || null;
-      c.restSec = def.restSec || null;
-      c.rpe = def.rpe || null;
-      c.rir = def.rir || null;
-      c.sets.forEach((s) => {
+      const exercise = next.exercises[targetCursor.exerciseIndex];
+      const definition = getExercise(targetId);
+      if (!definition) return prev;
+      exercise.originalId = exercise.originalId || exercise.exerciseId;
+      exercise.exerciseId = definition.id;
+      exercise.name = definition.name;
+      exercise.variation = definition.variation;
+      exercise.visualId = definition.visualId;
+      exercise.category = definition.category;
+      exercise.type = definition.type;
+      exercise.perSide = !!definition.perSide;
+      exercise.durationMin = definition.durationMin || null;
+      exercise.restSec = definition.restSec || null;
+      exercise.rpe = definition.rpe || null;
+      exercise.rir = definition.rir || null;
+      exercise.sets.forEach((s) => {
         if (s.completed) return;
-        s.targetReps = def.targetReps ? [...def.targetReps] : null;
-        s.targetSec = def.targetSec ? [...def.targetSec] : null;
-        s.holdSec = def.holdSec ?? null;
+        s.targetReps = definition.targetReps ? [...definition.targetReps] : null;
+        s.targetSec = definition.targetSec ? [...definition.targetSec] : null;
+        s.holdSec = definition.holdSec ?? null;
         s.actualReps = null;
         s.actualSec = null;
         s.weight = null;
@@ -156,23 +208,7 @@ export default function WorkoutSession() {
         s.rir = null;
         s.progression = null;
       });
-      c.progression = null;
-      return next;
-    });
-  };
-
-  const moveCursor = (delta) => {
-    setMissingWarning(false);
-    setSession((prev) => {
-      const next = structuredClone(prev);
-      const fl = [];
-      next.exercises.forEach((e, ei) => e.sets.forEach((s, si) => fl.push({ ei, si })));
-      const idx = fl.findIndex((p) => p.ei === next.cursor.exerciseIndex && p.si === next.cursor.setIndex);
-      const ni = Math.max(0, Math.min(fl.length - 1, idx + delta));
-      next.cursor = { exerciseIndex: fl[ni].ei, setIndex: fl[ni].si };
-      next.phase = 'work';
-      next.restEndsAt = null;
-      next.pendingNext = null;
+      exercise.progression = null;
       return next;
     });
   };
@@ -193,25 +229,28 @@ export default function WorkoutSession() {
     });
   };
 
-  const advance = (markPatch) => {
-    setMissingWarning(false);
+  const advance = (markPatch, cursor = session.cursor) => {
     const next = structuredClone(session);
     next.lastActivityAt = Date.now();
-    const c = next.exercises[next.cursor.exerciseIndex];
-    Object.assign(c.sets[next.cursor.setIndex], markPatch);
-    const curProg = c.sets[next.cursor.setIndex].progression || null;
+    next.cursor = { exerciseIndex: cursor.exerciseIndex, setIndex: cursor.setIndex };
+    const exercise = next.exercises[cursor.exerciseIndex];
+    Object.assign(exercise.sets[cursor.setIndex], markPatch);
+    const carriedProgression = exercise.sets[cursor.setIndex].progression || null;
 
-    const nxt = (() => {
-      const { exerciseIndex, setIndex } = next.cursor;
-      const ex = next.exercises[exerciseIndex];
-      if (setIndex + 1 < ex.sets.length) return { exerciseIndex, setIndex: setIndex + 1 };
+    const upcoming = (() => {
+      const { exerciseIndex, setIndex } = cursor;
+      const current = next.exercises[exerciseIndex];
+      if (setIndex + 1 < current.sets.length) return { exerciseIndex, setIndex: setIndex + 1 };
       if (exerciseIndex + 1 < next.exercises.length) return { exerciseIndex: exerciseIndex + 1, setIndex: 0 };
       return null;
     })();
 
-    if (!nxt) {
+    if (!upcoming) {
       next.finishedAt = Date.now();
-      if (next.resumeAt && !next.paused) { next.activeMs = (next.activeMs || 0) + (Date.now() - next.resumeAt); next.resumeAt = null; }
+      if (next.resumeAt && !next.paused) {
+        next.activeMs = (next.activeMs || 0) + (Date.now() - next.resumeAt);
+        next.resumeAt = null;
+      }
       saveActiveSession(next);
       setSession(next);
       navigate('/summary');
@@ -219,69 +258,55 @@ export default function WorkoutSession() {
     }
 
     // carry the chosen progression forward to the next set of the same exercise
-    if (nxt.exerciseIndex === next.cursor.exerciseIndex && curProg) {
-      const ns = next.exercises[nxt.exerciseIndex].sets[nxt.setIndex];
-      if (!ns.progression) ns.progression = curProg;
+    if (upcoming.exerciseIndex === cursor.exerciseIndex && carriedProgression) {
+      const nextSet = next.exercises[upcoming.exerciseIndex].sets[upcoming.setIndex];
+      if (!nextSet.progression) nextSet.progression = carriedProgression;
     }
 
-    const justFinished = next.exercises[next.cursor.exerciseIndex];
+    const justFinished = next.exercises[cursor.exerciseIndex];
     const useRest = justFinished.restSec && justFinished.type !== 'skill' && justFinished.type !== 'prehab';
     if (useRest) {
       next.phase = 'rest';
       next.restEndsAt = Date.now() + justFinished.restSec * 1000;
-      next.pendingNext = nxt;
+      next.pendingNext = upcoming;
     } else {
       next.phase = 'work';
-      next.cursor = nxt;
+      next.cursor = upcoming;
       next.restEndsAt = null;
       next.pendingNext = null;
     }
     setSession(next);
   };
 
-  const completeSet = (force = false) => {
+  const completeSetAt = (exerciseIndex, setIndex, force = false) => {
     if (paused) return;
-    const missing = missingFields(cur.type, set);
-    if (missing.length && !force && !missingWarning) {
-      setMissingWarning(true);
+    const exercise = session.exercises[exerciseIndex];
+    const targetSet = exercise.sets[setIndex];
+    const key = `${exerciseIndex}:${setIndex}`;
+    const missingFieldsForSet = missingFields(exercise.type, targetSet);
+    if (missingFieldsForSet.length && !force && missingAt !== key) {
+      setMissingAt(key);
       return;
     }
-    setMissingWarning(false);
-    const patch = { completed: true, skipped: false, completedAt: Date.now() };
-    advance(patch);
+    setMissingAt(null);
+    advance({ completed: true, skipped: false, completedAt: Date.now() }, { exerciseIndex, setIndex });
   };
 
-  const skipSet = () => {
+  const skipSetAt = (exerciseIndex, setIndex) => {
     if (paused) return;
-    setMissingWarning(false);
-    advance({ completed: true, skipped: true, completedAt: Date.now() });
-  };
-
-  const finishRest = () => {
-    setSession((prev) => {
-      const next = structuredClone(prev);
-      next.phase = 'work';
-      next.cursor = next.pendingNext || next.cursor;
-      next.restEndsAt = null;
-      next.pendingNext = null;
-      return next;
-    });
-  };
-
-  const adjustRest = (delta) => {
-    setSession((prev) => {
-      const next = structuredClone(prev);
-      next.restEndsAt = Math.max(Date.now(), (next.restEndsAt || Date.now()) + delta * 1000);
-      return next;
-    });
+    setMissingAt(null);
+    advance({ completed: true, skipped: true, completedAt: Date.now() }, { exerciseIndex, setIndex });
   };
 
   const finishWorkout = () => {
-    const f = structuredClone(session);
-    f.finishedAt = Date.now();
-    if (f.resumeAt && !f.paused) { f.activeMs = (f.activeMs || 0) + (Date.now() - f.resumeAt); f.resumeAt = null; }
-    saveActiveSession(f);
-    setSession(f);
+    const finished = structuredClone(session);
+    finished.finishedAt = Date.now();
+    if (finished.resumeAt && !finished.paused) {
+      finished.activeMs = (finished.activeMs || 0) + (Date.now() - finished.resumeAt);
+      finished.resumeAt = null;
+    }
+    saveActiveSession(finished);
+    setSession(finished);
     navigate('/summary');
   };
 
@@ -296,150 +321,8 @@ export default function WorkoutSession() {
     navigate('/');
   };
 
-  const renderTopBar = (showFinish = true) => (
-    <div className="flex items-center justify-between py-1.5 mb-1">
-      <button
-        onClick={exit}
-        aria-label="Exit workout"
-        className="w-9 h-9 rounded-xl border border-border/80 bg-card/50 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-95 transition-all"
-      >
-        <X size={17} />
-      </button>
-      <div className="flex items-center gap-2">
-        {paused && (
-          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
-            Paused
-          </span>
-        )}
-        <span className="text-base font-extrabold tnum text-foreground tracking-tight">{formatClock(elapsed)}</span>
-      </div>
-      <div className="relative">
-        <button
-          onClick={() => setShowMenu((v) => !v)}
-          aria-label="Workout options"
-          aria-expanded={showMenu}
-          className="w-9 h-9 rounded-xl border border-border/80 bg-card/50 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-95 transition-all"
-        >
-          <MoreVertical size={17} />
-        </button>
-        {showMenu && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-            <div
-              role="menu"
-              aria-label="Workout options"
-              onKeyDown={(e) => { if (e.key === 'Escape') setShowMenu(false); }}
-              className="absolute right-0 top-11 z-50 w-52 rounded-2xl border border-border/90 bg-card/95 backdrop-blur-2xl shadow-2xl shadow-black/60 overflow-hidden animate-fade-in p-1"
-            >
-              <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">Workout layout</p>
-              <div role="group" aria-label="Workout layout">
-                {LAYOUTS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={layout === option.id}
-                    onClick={() => { setLayout(option.id); setShowMenu(false); }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-left transition-colors ${
-                      layout === option.id
-                        ? 'bg-brand/15 text-brand'
-                        : 'text-muted-foreground hover:bg-card hover:text-foreground'
-                    }`}
-                  >
-                    <span className="flex-1">{option.label}</span>
-                    {layout === option.id && <Check size={14} className="text-brand" strokeWidth={2.5} />}
-                  </button>
-                ))}
-              </div>
-              {showFinish && (
-                <button
-                  role="menuitem"
-                  onClick={() => { setShowMenu(false); finishWorkout(); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left hover:bg-card transition-colors border-t border-border/70 mt-1"
-                >
-                  <Flag size={14} className="text-muted-foreground" /> Finish workout
-                </button>
-              )}
-              <button
-                role="menuitem"
-                onClick={() => { setShowMenu(false); setConfirmCancel(true); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left text-red-400 hover:bg-card transition-colors border-t border-border/70 mt-0.5"
-              >
-                <Trash2 size={14} /> Cancel workout
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-
-  const confirmCancelModal = confirmCancel && (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center px-6 animate-fade-in" onClick={() => setConfirmCancel(false)}>
-      <div className="w-full max-w-[340px] rounded-2xl border border-border bg-card p-5 animate-scale-in" onClick={(e) => e.stopPropagation()}>
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style={{ background: 'hsl(0 72% 56% / 0.14)' }}>
-          <Trash2 size={20} className="text-red-400" />
-        </div>
-        <h3 className="text-base font-bold">Cancel workout?</h3>
-        <p className="text-sm text-muted-foreground mt-1.5">
-          Your progress for this session will be discarded. This cannot be undone.
-        </p>
-        <div className="grid grid-cols-2 gap-2 mt-4">
-          <button
-            onClick={() => setConfirmCancel(false)}
-            className="h-11 rounded-xl border border-border bg-card/40 text-sm font-semibold"
-          >
-            Keep workout
-          </button>
-          <button
-            onClick={cancelWorkout}
-            className="h-11 rounded-xl text-sm font-semibold"
-            style={{ background: 'hsl(var(--destructive))', color: 'hsl(var(--destructive-foreground))' }}
-          >
-            Cancel workout
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ── DEDICATED FULLSCREEN REST VIEW ──
-  if (isRest && restViewMode === 'fullscreen') {
-    const nextEx = session.pendingNext ? session.exercises[session.pendingNext.exerciseIndex] : null;
-    const nextSetIndex = session.pendingNext ? session.pendingNext.setIndex : 0;
-    const justFinished = session.exercises[session.cursor.exerciseIndex];
-    return (
-      <div className="min-h-screen flex flex-col px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] animate-fade-in">
-        {renderTopBar(false)}
-        <div className="flex-1 flex flex-col justify-center">
-          <RestTimer
-            restEndsAt={session.restEndsAt}
-            totalDurationSec={justFinished?.restSec || 90}
-            onDone={finishRest}
-            onAdjust={adjustRest}
-            onMinimize={() => setRestViewMode('pill')}
-            accent={accent}
-          />
-          {nextEx && (
-            <div className="mt-6 flex items-center gap-3 p-3.5 rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl animate-fade-in-up">
-              <span className="w-11 h-11 rounded-xl flex items-center justify-center bg-background/80 shrink-0">
-                <ExerciseVisual visualId={nextEx.visualId} category={nextEx.category} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Up next · Set {nextSetIndex + 1}/{nextEx.sets.length}</p>
-                <p className="text-sm font-bold truncate text-foreground mt-0.5">{nextEx.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{nextEx.variation}</p>
-              </div>
-            </div>
-          )}
-        </div>
-        {confirmCancelModal}
-      </div>
-    );
-  }
-
   const selectSetInList = (exerciseIndex, setIndex) => {
-    setMissingWarning(false);
+    setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
       next.cursor = { exerciseIndex, setIndex };
@@ -450,442 +333,445 @@ export default function WorkoutSession() {
     });
   };
 
-  // ── LIST LAYOUT (HEVY / STRONG STYLE) ──
-  if (layout === 'list') {
-    return (
-      <>
-        <WorkoutListLayout
-          session={session}
-          doneSets={doneSets}
-          totalSets={totalSets}
-          progress={progress}
-          paused={paused}
-          onSelectSet={selectSetInList}
-          update={update}
-          completeSet={completeSet}
-          skipSet={skipSet}
-          togglePause={togglePause}
-          renderTopBar={renderTopBar}
-          missingWarning={missingWarning}
-          onForceComplete={() => completeSet(true)}
-          onUpdateProgression={updateProgression}
-        />
-        {isRest && (
-          <FloatingRestPill
-            restEndsAt={session.restEndsAt}
-            totalDurationSec={session.exercises[session.cursor.exerciseIndex]?.restSec || 90}
-            onDone={finishRest}
-            onAdjust={adjustRest}
-            onMaximize={() => setRestViewMode('fullscreen')}
-            accent={accent}
-          />
+  const openSheet = (field, exerciseIndex = targetCursor.exerciseIndex, setIndex = targetCursor.setIndex) => {
+    setSheet({ field, exerciseIndex, setIndex });
+    setSheetOpen(true);
+  };
+
+  const sheetExercise = sheet ? session.exercises[sheet.exerciseIndex] : null;
+  const sheetSet = sheetExercise ? sheetExercise.sets[sheet.setIndex] : null;
+  const sheetField = sheet?.field;
+  const sheetLast = sheetExercise ? getLastPerformance(sheetExercise.exerciseId, sessions) : null;
+  const sheetSeed = sheetField === 'weight'
+    ? 0
+    : first(sheetSet?.targetReps) ?? first(sheetSet?.targetSec) ?? first(sheetSet?.holdSec) ?? 0;
+  const sheetStep = sheetExercise && sheetField
+    ? loadExerciseIncrement(sheetExercise.exerciseId, sheetField, DEFAULT_STEP[sheetField])
+    : 1;
+  const sheetUnit = sheetField ? FIELD_UNIT[sheetField] : '';
+  const sheetPresets = (() => {
+    if (!sheetField || !sheetSet) return [];
+    if (sheetField === 'weight') {
+      const lastWeight = sheetLast?.sets?.[0]?.weight;
+      return [
+        { label: 'Bodyweight', value: 0 },
+        ...(Number.isFinite(lastWeight) ? [{ label: `Last ${lastWeight} kg`, value: lastWeight }] : []),
+      ];
+    }
+    const lastValue = sheetLast?.sets?.[0]?.[FIELD_KEY[sheetField]];
+    return [
+      { label: `Target ${sheetSeed}${sheetUnit}`, value: sheetSeed },
+      ...(Number.isFinite(lastValue) && lastValue !== sheetSeed
+        ? [{ label: `Last ${lastValue}${sheetUnit}`, value: lastValue }]
+        : []),
+    ];
+  })();
+
+  const commitSheet = (value) => {
+    if (!sheet) return;
+    updateAt(sheet.exerciseIndex, sheet.setIndex, { [FIELD_KEY[sheet.field]]: value });
+  };
+
+  const changeSheetStep = (step) => {
+    if (!sheetExercise || !sheetField) return;
+    saveExerciseIncrement(sheetExercise.exerciseId, sheetField, step);
+    setIncrementTick((tick) => tick + 1);
+  };
+
+  const renderTopBar = () => (
+    <header className="console-rail">
+      <button
+        type="button"
+        onClick={exit}
+        aria-label="Exit workout"
+        className="console-icon-button"
+      >
+        <X size={17} />
+      </button>
+
+      <div className="min-w-0 flex-1 text-center">
+        <p className="truncate text-[12px] font-semibold text-[var(--console-chalk)]">
+          {session.workoutName}
+        </p>
+        {!isRest && (
+          <p className="mt-0.5 text-[10px] font-medium tabular-nums text-[var(--console-steel)]">
+            {doneSets} of {totalSets} sets
+            {session.mode && session.mode !== 'full' ? ` (${MODES[session.mode]?.label})` : ''}
+          </p>
         )}
-        {confirmCancelModal}
-      </>
-    );
-  }
-
-  // Common definitions
-  const exDef = getExercise(cur.exerciseId);
-  const lastPerfData = getLastPerformance(cur.exerciseId, sessions);
-  const lastPerf = lastPerfData ? formatLastPerformance(lastPerfData.sets, lastPerfData.type) : null;
-  const rec = getRepRecommendation(cur.exerciseId, sessions, session.week);
-  const isSkill = cur.type === 'skill' || cur.type === 'prehab';
-  const hasLevels = !!exDef?.progressionLevels?.length;
-  const missing = missingWarning ? missingFields(cur.type, set) : [];
-
-  // ── MINIMAL LAYOUT (ULTRA-COMPACT) ──
-  if (layout === 'minimal') {
-    return (
-      <div data-workout-layout="minimal" className="min-h-screen flex flex-col px-4 sm:px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        {renderTopBar()}
-
-        {/* slim progress bar */}
-        <div className="mt-1 mb-2">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-            <span className="truncate">{session.workoutName}</span>
-            <span className="tnum shrink-0 font-bold">{doneSets}/{totalSets} sets · {Math.round(progress * 100)}%</span>
-          </div>
-          <div className="h-1 rounded-full bg-border overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progress * 100}%`, background: 'hsl(var(--foreground))' }} />
-          </div>
-        </div>
-
-        {/* compact header */}
-        <div className="flex items-baseline justify-between gap-2 border-b border-border/60 pb-1.5">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground tnum">
-                Set {targetCursor.setIndex + 1}/{cur.sets.length}
-              </span>
-              <span className="text-xs text-muted-foreground truncate">{cur.variation || cur.category}</span>
-            </div>
-            <h2 className="text-lg font-bold tracking-tight truncate mt-0.5">{cur.name}</h2>
-          </div>
-          <span className="text-xs text-muted-foreground shrink-0 tnum font-bold">Ex {targetCursor.exerciseIndex + 1}/{totalEx}</span>
-        </div>
-
-        {/* compact target line */}
-        <div className="flex items-center justify-between py-2 text-xs">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-muted-foreground font-bold uppercase text-[10px] tracking-wider">Target:</span>
-            <span className="font-extrabold text-foreground text-sm tnum">{formatTarget(exDef)}</span>
-          </div>
-          {lastPerf && (
-            <div className="text-[11px] text-muted-foreground truncate ml-2">
-              <span>Last: </span>
-              <span className="text-foreground font-semibold tnum">{lastPerf}</span>
-            </div>
-          )}
-        </div>
-
-        {hasLevels && (
-          <div className="mb-2">
-            <ProgressionSelector levels={exDef.progressionLevels} value={set.progression} onChange={updateProgression} accent={accent} />
-          </div>
-        )}
-
-        <div className="flex-1 min-h-0 flex flex-col justify-center py-2">
-          {isSkill ? (
-            <div className="p-2.5 rounded-xl border border-border bg-card/40">
-              <p className="text-xs text-muted-foreground mb-2">Practice for <span className="text-foreground font-semibold">{cur.durationMin} min</span>.</p>
-              <SetInputs exercise={cur} set={set} update={update} invalid={missing} size="sm" />
-            </div>
-          ) : (
-            <SetInputs exercise={cur} set={set} update={update} invalid={missing} size="sm" />
-          )}
-
-          {missingWarning && (
-            <div className="mt-2.5 flex items-center justify-between gap-2 p-2 rounded-xl border border-amber-500/40 bg-amber-500/10 text-xs text-amber-200 animate-fade-in">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <AlertCircle size={14} className="shrink-0 text-amber-400" />
-                <span className="truncate">Enter {missing.join(' & ')} to complete</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => completeSet(true)}
-                className="px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold text-[11px] shrink-0"
-              >
-                Log anyway
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* bottom actions */}
-        <div className="space-y-2 pt-2">
-          {paused ? (
-            <button
-              onClick={togglePause}
-              className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
-              style={{ background: 'var(--brand)', color: 'var(--brand-fg)' }}
-            >
-              <Play size={16} fill="currentColor" /> Resume
-            </button>
-          ) : (
-            <button
-              onClick={() => completeSet()}
-              className="w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-md shadow-emerald-950/20"
-              style={{ background: GREEN, color: '#06180e' }}
-            >
-              <Check size={16} strokeWidth={2.5} />
-              {isSkill ? 'Mark Done' : 'Complete Set'}
-            </button>
-          )}
-
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => moveCursor(-1)}
-              disabled={atFirst}
-              aria-label="Previous set"
-              className="h-10 px-3 rounded-lg border border-border bg-card/60 text-xs font-semibold inline-flex items-center gap-1 disabled:opacity-40"
-            >
-              <ChevronLeft size={15} /> Back
-            </button>
-            <div className="flex-1 flex justify-center gap-1.5">
-              {!paused && !isSkill && (
-                <button
-                  onClick={skipSet}
-                  className="h-10 px-3 rounded-lg border border-border bg-card/40 text-xs text-muted-foreground font-semibold inline-flex items-center gap-1 hover:text-foreground"
-                >
-                  <SkipForward size={14} /> Skip
-                </button>
-              )}
-              {!paused && (
-                <button
-                  onClick={togglePause}
-                  className="h-10 px-3 rounded-lg border border-border bg-card/40 text-xs text-muted-foreground font-semibold inline-flex items-center gap-1 hover:text-foreground"
-                >
-                  <Pause size={14} /> Pause
-                </button>
-              )}
-            </div>
-            <button
-              onClick={() => moveCursor(1)}
-              disabled={atLast}
-              aria-label="Next set"
-              className="h-10 px-3 rounded-lg border border-border bg-card/60 text-xs font-semibold inline-flex items-center gap-1 disabled:opacity-40"
-            >
-              Next <ChevronRight size={15} />
-            </button>
-          </div>
-        </div>
-
-        {isRest && (
-          <FloatingRestPill
-            restEndsAt={session.restEndsAt}
-            totalDurationSec={session.exercises[session.cursor.exerciseIndex]?.restSec || 90}
-            onDone={finishRest}
-            onAdjust={adjustRest}
-            onMaximize={() => setRestViewMode('fullscreen')}
-            accent={accent}
-          />
-        )}
-        {confirmCancelModal}
-      </div>
-    );
-  }
-
-  // ── FOCUS LAYOUT (PRIMARY DEFAULT — THENICS ATHLETIC GUIDED EXPERIENCE) ──
-  return (
-    <div data-workout-layout="focus" className="min-h-screen flex flex-col px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-      {renderTopBar()}
-
-      {/* Progress Line */}
-      <div className="mt-0.5 mb-2.5">
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-          <span className="truncate font-semibold">{session.workoutName}{session.mode && session.mode !== 'full' ? ` · ${MODES[session.mode]?.label}` : ''}</span>
-          <span className="tnum font-bold shrink-0">{doneSets}/{totalSets} sets · {Math.round(progress * 100)}%</span>
-        </div>
-        <div className="h-1.5 rounded-full bg-border overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{ width: `${progress * 100}%`, background: accent }}
-          />
-        </div>
       </div>
 
-      {/* Hero Exercise Card */}
-      <div className="athletic-card p-3.5 shadow-lg shadow-black/40">
-        <div className="flex items-start gap-3.5">
-          {/* Glowing Avatar */}
-          <div
-            className="relative w-14 h-14 rounded-2xl bg-card flex items-center justify-center shrink-0 border"
-            style={{ borderColor: `${accent}40` }}
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="text-[15px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--console-chalk)]">
+          {formatClock(elapsed)}
+        </span>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowMenu((open) => !open)}
+            aria-label="Workout options"
+            aria-expanded={showMenu}
+            className="console-icon-button"
           >
-            <span
-              className="absolute -inset-1 rounded-2xl blur-md pointer-events-none opacity-40"
-              style={{ background: accent }}
-            />
-            <div className="relative z-10">
-              <ExerciseVisual visualId={cur.visualId} category={cur.category} />
-            </div>
-          </div>
-
-          {/* Exercise Info */}
-          <div className="flex-1 min-w-0 pt-0.5">
-            <div className="flex items-center gap-1.5">
-              <span
-                className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider"
-                style={{ background: `${accent}22`, color: accent }}
+            <MoreVertical size={17} />
+          </button>
+          {showMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+              <div
+                role="menu"
+                aria-label="Workout options"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setShowMenu(false);
+                }}
+                className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-[var(--console-line)] bg-[var(--console-surface)] p-1 shadow-2xl shadow-black/60"
               >
-                {cur.category}
-              </span>
-              <span className="text-[11px] text-muted-foreground truncate font-medium">{cur.variation}</span>
-            </div>
-            <h2 className="text-xl font-black tracking-tight leading-tight mt-1 text-foreground truncate">{cur.name}</h2>
-
-            {/* Set Progress Capsules */}
-            <div className="flex items-center gap-1.5 mt-2">
-              {cur.sets.map((s, idx) => {
-                const isDone = s.completed && !s.skipped;
-                const isCurrent = idx === targetCursor.setIndex;
-                return (
-                  <span
-                    key={idx}
-                    className={`set-capsule ${
-                      isDone ? 'set-capsule-done' : isCurrent ? 'set-capsule-active' : 'set-capsule-pending'
+                <p className="px-3 pb-1 pt-2 text-[10px] font-semibold text-[var(--console-steel)]">
+                  View
+                </p>
+                {LAYOUTS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={layout === option.id}
+                    onClick={() => {
+                      setLayout(option.id);
+                      setShowMenu(false);
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] font-semibold ${
+                      layout === option.id
+                        ? 'bg-[var(--console-surface-2)] text-[var(--console-chalk)]'
+                        : 'text-[var(--console-steel)] hover:text-[var(--console-chalk)]'
                     }`}
                   >
-                    {isDone ? <Check size={12} strokeWidth={3} /> : idx + 1}
-                  </span>
-                );
-              })}
-              <span className="text-[11px] font-bold text-muted-foreground ml-1.5 tnum">
-                Set {targetCursor.setIndex + 1} of {cur.sets.length}
-              </span>
-            </div>
-          </div>
+                    <span className="flex-1">{option.label}</span>
+                    {layout === option.id && <Check size={13} />}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setShowMenu(false);
+                    finishWorkout();
+                  }}
+                  className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-[var(--console-line)] px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:text-[var(--console-chalk)]"
+                >
+                  <Flag size={14} /> Finish workout
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setShowMenu(false);
+                    setConfirmCancel(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-oxide)] hover:bg-[var(--console-surface-2)]"
+                >
+                  <Trash2 size={14} /> Cancel workout
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
 
+  const confirmCancelModal = confirmCancel && (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-6"
+      onClick={() => setConfirmCancel(false)}
+    >
+      <div
+        className="w-full max-w-[340px] rounded-2xl border border-[var(--console-line)] bg-[var(--console-surface)] p-5"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--console-oxide)_16%,transparent)]">
+          <Trash2 size={18} className="text-[var(--console-oxide)]" />
+        </div>
+        <h3 className="text-[16px] font-bold text-[var(--console-chalk)]">Cancel workout?</h3>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--console-steel)]">
+          Your progress for this session will be discarded. This cannot be undone.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-2">
           <button
-            onClick={() => setShowInfo((v) => !v)}
-            aria-label="Exercise details"
-            aria-expanded={showInfo}
-            className="w-8 h-8 rounded-xl border border-border/70 bg-card/40 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground active:scale-95 transition-all"
+            type="button"
+            onClick={() => setConfirmCancel(false)}
+            className="h-11 rounded-xl border border-[var(--console-line)] text-[13px] font-semibold text-[var(--console-chalk)]"
           >
-            <Info size={15} />
+            Keep workout
+          </button>
+          <button
+            type="button"
+            onClick={cancelWorkout}
+            className="h-11 rounded-xl text-[13px] font-semibold text-white"
+            style={{ background: 'var(--console-oxide)' }}
+          >
+            Cancel workout
           </button>
         </div>
+      </div>
+    </div>
+  );
 
-        {/* Easier / Harder variation switcher */}
-        <VariationSwitcher
-          originalId={cur.originalId || cur.exerciseId}
-          currentId={cur.exerciseId}
-          onSwitch={switchExercise}
+  const sheets = (
+    <>
+      {sheet && sheetSet && sheetField && (
+        <WheelSheet
+          key={`${sheet.exerciseIndex}-${sheet.setIndex}-${sheetField}`}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          title={FIELD_TITLE[sheetField]}
+          description={`${sheetExercise.name}, set ${sheet.setIndex + 1}`}
+          unit={sheetUnit}
+          value={sheetSet[FIELD_KEY[sheetField]]}
+          seed={sheetSeed}
+          min={0}
+          max={FIELD_MAX[sheetField]}
+          step={sheetStep}
+          presets={sheetPresets}
+          stepOptions={STEP_OPTIONS[sheetField]}
+          onStepChange={changeSheetStep}
+          onCommit={commitSheet}
         />
+      )}
 
-        {/* Info drawer if expanded */}
-        {showInfo && (
-          <div className="mt-3 p-3 rounded-xl border border-border/80 bg-background/60 text-xs space-y-1 animate-fade-in">
-            {exDef.notes && <p className="text-foreground/90 font-medium leading-relaxed">{exDef.notes}</p>}
-            <p className="text-muted-foreground">Muscles: <span className="text-foreground/80">{exDef.muscles.join(', ')}</span></p>
-            <p className="text-muted-foreground">Equipment: <span className="text-foreground/80">{exDef.equipment.join(', ')}</span></p>
-          </div>
-        )}
-      </div>
-
-      {/* Target & Previous Performance Banner */}
-      <div className="mt-2.5 p-3 rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl flex items-center justify-between gap-3">
-        <div>
-          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block">Target</span>
-          <span className="text-xl font-black text-foreground tnum tracking-tight leading-none mt-0.5 block">
-            {formatTarget(exDef)}
-          </span>
+      <ConsoleSheet
+        open={showCue}
+        onOpenChange={setShowCue}
+        title={cur.name}
+        description="Form cue and exercise details"
+        footer={
+          <button type="button" onClick={() => setShowCue(false)} className="console-primary">
+            Done
+          </button>
+        }
+      >
+        <div className="space-y-4 pb-2">
+          {rec?.text && (
+            <div>
+              <p className="text-[10px] font-semibold text-[var(--console-steel)]">Coach</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-[var(--console-chalk)]">{rec.text}</p>
+            </div>
+          )}
+          {exDef?.notes && (
+            <div>
+              <p className="text-[10px] font-semibold text-[var(--console-steel)]">Form cue</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-[var(--console-chalk)]">{exDef.notes}</p>
+            </div>
+          )}
+          {exDef?.muscles?.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-[var(--console-steel)]">Muscles</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-[var(--console-chalk)]">
+                {exDef.muscles.join(', ')}
+              </p>
+            </div>
+          )}
+          {exDef?.equipment?.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-[var(--console-steel)]">Equipment</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-[var(--console-chalk)]">
+                {exDef.equipment.join(', ')}
+              </p>
+            </div>
+          )}
+          <VariationSwitcher
+            originalId={cur.originalId || cur.exerciseId}
+            currentId={cur.exerciseId}
+            onSwitch={switchExercise}
+          />
         </div>
+      </ConsoleSheet>
 
-        {(lastPerf || rec) && (
-          <div className="text-right text-xs">
-            {lastPerf && (
-              <p className="text-muted-foreground text-[11px]">
-                Last: <span className="text-foreground font-bold tnum">{lastPerf}</span>
-              </p>
-            )}
-            {rec && (
-              <p className="text-muted-foreground text-[11px] mt-0.5">
-                Suggested: <span className="font-bold text-foreground">{rec.text}</span>
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+      <ConsoleSheet
+        open={showNote}
+        onOpenChange={setShowNote}
+        title="Exercise note"
+        description="A short note for this exercise"
+        footer={
+          <button type="button" onClick={() => setShowNote(false)} className="console-primary">
+            Done
+          </button>
+        }
+      >
+        <textarea
+          value={cur.note || ''}
+          onChange={(event) => updateExerciseNote(event.target.value)}
+          placeholder="How did this feel? Anything to remember…"
+          rows={6}
+          className="w-full resize-none border border-[var(--console-line)] bg-transparent p-3 text-[14px] leading-relaxed text-[var(--console-chalk)] outline-none placeholder:text-[var(--console-steel)] focus:border-[var(--console-chalk)]"
+        />
+      </ConsoleSheet>
+    </>
+  );
 
-      {/* Progression level selector if applicable */}
-      {hasLevels && (
-        <div className="mt-2 px-1">
-          <ProgressionSelector
-            levels={exDef.progressionLevels}
-            value={set.progression}
-            onChange={updateProgression}
+  // ── REST: the same screen, one state at a time ──
+  if (isRest) {
+    const nextSetIndex = targetCursor.setIndex;
+    const justFinished = session.exercises[session.cursor.exerciseIndex];
+    return (
+      <div className="console-page">
+        <div className="console-shell" data-workout-layout="focus" style={{ '--console-signal': accent }}>
+          {renderTopBar()}
+          <RestState
+            restEndsAt={session.restEndsAt || Date.now()}
+            totalDurationSec={justFinished?.restSec || 90}
+            nextExercise={cur}
+            nextSetIndex={nextSetIndex}
+            onDone={finishRest}
+            onAdjust={adjustRest}
             accent={accent}
           />
         </div>
-      )}
+        {sheets}
+        {confirmCancelModal}
+      </div>
+    );
+  }
 
-      {/* Set Logging Inputs */}
-      <div className="mt-3 flex-1 flex flex-col justify-start">
-        {isSkill ? (
-          <div className="p-3 rounded-2xl border border-border/80 bg-card/40">
-            <p className="text-xs text-muted-foreground mb-2.5 font-medium">Practice for <span className="text-foreground font-bold">{cur.durationMin} min</span>. Log your best hold if you want.</p>
-            <SetInputs exercise={cur} set={set} update={update} invalid={missing} size="md" />
-          </div>
-        ) : (
-          <SetInputs exercise={cur} set={set} update={update} invalid={missing} size="md" />
-        )}
+  // ── LIST: editable overview ──
+  if (layout === 'list') {
+    return (
+      <div className="console-page">
+        <div className="console-shell" data-workout-layout="list">
+          <WorkoutListLayout
+            session={session}
+            doneSets={doneSets}
+            totalSets={totalSets}
+            progress={progress}
+            paused={paused}
+            onSelectSet={selectSetInList}
+            openSheet={openSheet}
+            updateAt={updateAt}
+            onCompleteAt={completeSetAt}
+            onSkipAt={skipSetAt}
+            togglePause={togglePause}
+            renderTopBar={renderTopBar}
+            missingAt={missingAt}
+          />
+        </div>
+        {sheets}
+        {confirmCancelModal}
+      </div>
+    );
+  }
 
-        {/* Inline validation warning */}
-        {missingWarning && (
-          <div className="mt-2.5 flex items-center justify-between gap-3 p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-xs text-amber-200 animate-fade-in">
-            <div className="flex items-center gap-2 min-w-0">
-              <AlertCircle size={15} className="shrink-0 text-amber-400" />
-              <span>No {missing.join(' or ')} entered for this set.</span>
+  // ── FOCUS: the console ──
+  return (
+    <div className="console-page">
+      <div className="console-shell" data-workout-layout="focus" style={{ '--console-signal': accent }}>
+        {renderTopBar()}
+
+        <main className="min-h-0 overflow-y-auto">
+          <section className="console-hero">
+            <div className="console-watermark" aria-hidden="true">
+              <ExerciseVisual
+                visualId={cur.visualId}
+                category={cur.category}
+                color="var(--console-chalk)"
+                className="h-full w-full"
+              />
             </div>
+            <span className="console-signal" aria-hidden="true" />
+            <p className="console-category">{cur.category}</p>
+            <h1 className="console-title">{cur.name}</h1>
+            <p className="mt-1 text-[13px] text-[var(--console-steel)]">{cur.variation}</p>
+
+            {hasLevels && (
+              <ProgressionSelector
+                levels={exDef.progressionLevels}
+                value={set.progression}
+                onChange={updateProgression}
+                accent={accent}
+              />
+            )}
+
+            <div className="console-readout-row">
+              <div className="console-readout-cell">
+                <span className="console-readout-label">Target</span>
+                <span className="console-readout-value">{exDef ? formatTarget(exDef) : '—'}</span>
+              </div>
+              {lastPerf && (
+                <div className="console-readout-cell">
+                  <span className="console-readout-label">Last</span>
+                  <span className="console-readout-value">{lastPerf}</span>
+                </div>
+              )}
+              {nextLoad && (
+                <div className="console-readout-cell">
+                  <span className="console-readout-label">Next</span>
+                  <span className="console-readout-value">{nextLoad}</span>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="console-input">
+            <SetInputs exercise={cur} set={set} onOpen={openSheet} />
+            <EffortRow exercise={cur} set={set} update={update} />
+            {showMissing && missing.length > 0 && (
+              <div className="console-warning">
+                <span>No {missing.join(' or ')} entered for this set.</span>
+                <button
+                  type="button"
+                  onClick={() => completeSetAt(targetCursor.exerciseIndex, targetCursor.setIndex, true)}
+                  className="shrink-0 border-b border-[#E3B56B] text-[12px] font-semibold text-[#E3B56B]"
+                >
+                  Log anyway
+                </button>
+              </div>
+            )}
+          </section>
+        </main>
+
+        <footer className="console-action">
+          {paused ? (
+            <button type="button" onClick={togglePause} className="console-primary">
+              <Play size={17} fill="currentColor" /> Resume workout
+            </button>
+          ) : (
             <button
               type="button"
-              onClick={() => completeSet(true)}
-              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold text-xs transition-colors shrink-0"
+              onClick={() => completeSetAt(targetCursor.exerciseIndex, targetCursor.setIndex)}
+              className="console-primary"
             >
-              Log anyway
+              <Check size={18} strokeWidth={2.6} /> {isSkill ? 'Mark done' : 'Complete set'}
+            </button>
+          )}
+
+          <div className="console-secondary-actions">
+            {!paused ? (
+              <button type="button" onClick={togglePause} className="console-text-action">
+                <Pause size={13} /> Pause
+              </button>
+            ) : (
+              <span />
+            )}
+            {!paused && !isSkill ? (
+              <button
+                type="button"
+                onClick={() => skipSetAt(targetCursor.exerciseIndex, targetCursor.setIndex)}
+                className="console-text-action"
+              >
+                <SkipForward size={13} /> Skip set
+              </button>
+            ) : (
+              <span />
+            )}
+            <button type="button" onClick={() => setShowCue(true)} className="console-text-action">
+              <Info size={13} /> Form cue
+            </button>
+            <button type="button" onClick={() => setShowNote(true)} className="console-text-action">
+              <StickyNote size={13} /> Note
             </button>
           </div>
-        )}
-
-        <div className="mt-3">
-          <ExerciseNote value={cur.note || ''} onChange={updateExerciseNote} accent={accent} />
-        </div>
+        </footer>
       </div>
 
-      {/* Primary Actions & Navigation */}
-      <div className="pt-2 space-y-2">
-        {paused ? (
-          <button
-            onClick={togglePause}
-            className="w-full h-13 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-lg shadow-brand/20"
-            style={{ background: 'var(--brand)', color: 'var(--brand-fg)' }}
-          >
-            <Play size={18} fill="currentColor" /> Resume Workout
-          </button>
-        ) : (
-          <button
-            onClick={() => completeSet()}
-            className="w-full h-13 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-lg shadow-emerald-950/25"
-            style={{ background: GREEN, color: '#06180e' }}
-          >
-            <Check size={19} strokeWidth={3} />
-            {isSkill ? 'Mark Done' : 'Complete Set'}
-          </button>
-        )}
-
-        {/* Secondary Utility Row */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => moveCursor(-1)}
-            disabled={atFirst}
-            aria-label="Previous set"
-            className="h-10 px-3.5 rounded-xl border border-border/80 bg-card/60 text-xs font-bold inline-flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-40 active:scale-95 transition-all"
-          >
-            <ChevronLeft size={16} /> Back
-          </button>
-          <div className="flex-1 flex justify-center gap-2">
-            {!paused && !isSkill && (
-              <button
-                onClick={skipSet}
-                className="h-10 px-3 rounded-xl border border-border/80 bg-card/40 text-xs text-muted-foreground font-bold inline-flex items-center gap-1.5 hover:text-foreground active:scale-95 transition-all"
-              >
-                <SkipForward size={14} /> Skip
-              </button>
-            )}
-            {!paused && (
-              <button
-                onClick={togglePause}
-                className="h-10 px-3 rounded-xl border border-border/80 bg-card/40 text-xs text-muted-foreground font-bold inline-flex items-center gap-1.5 hover:text-foreground active:scale-95 transition-all"
-              >
-                <Pause size={14} /> Pause
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => moveCursor(1)}
-            disabled={atLast}
-            aria-label="Next set"
-            className="h-10 px-3.5 rounded-xl border border-border/80 bg-card/60 text-xs font-bold inline-flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-40 active:scale-95 transition-all"
-          >
-            Next <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Floating Rest Pill if in rest phase and pill mode */}
-      {isRest && (
-        <FloatingRestPill
-          restEndsAt={session.restEndsAt}
-          totalDurationSec={session.exercises[session.cursor.exerciseIndex]?.restSec || 90}
-          onDone={finishRest}
-          onAdjust={adjustRest}
-          onMaximize={() => setRestViewMode('fullscreen')}
-          accent={accent}
-        />
-      )}
-
+      {sheets}
       {confirmCancelModal}
     </div>
   );

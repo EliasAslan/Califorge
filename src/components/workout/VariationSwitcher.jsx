@@ -13,7 +13,7 @@ export default function VariationSwitcher({ originalId, currentId, onSwitch }) {
   if (options.length < 2 || !current) return null;
 
   const ranked = [...options].sort(
-    (a, b) => (DIFF_RANK[a.difficulty] ?? 1) - (DIFF_RANK[b.difficulty] ?? 1)
+    (a, b) => (DIFF_RANK[a.difficulty] ?? 1) - (DIFF_RANK[b.difficulty] ?? 1),
   );
   const curIdx = ranked.findIndex((o) => o.id === currentId);
   if (curIdx < 0) return null;
@@ -23,32 +23,37 @@ export default function VariationSwitcher({ originalId, currentId, onSwitch }) {
   if (!prev && !next) return null;
 
   const labelFor = (ex) => {
-    const r = DIFF_RANK[ex.difficulty] ?? 1;
-    const c = DIFF_RANK[current.difficulty] ?? 1;
-    if (r < c) return 'Easier';
-    if (r > c) return 'Harder';
+    const rank = DIFF_RANK[ex.difficulty] ?? 1;
+    const currentRank = DIFF_RANK[current.difficulty] ?? 1;
+    if (rank < currentRank) return 'Easier';
+    if (rank > currentRank) return 'Harder';
     return 'Alternative';
   };
 
-  const btn = (ex, Icon, side) =>
+  const button = (ex, Icon, side) =>
     ex ? (
       <button
         type="button"
         onClick={() => onSwitch(ex.id)}
-        className="flex-1 inline-flex items-center gap-1.5 px-3 h-8 rounded-xl border border-border/80 bg-card/40 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:border-border hover:bg-card/70 transition-all active:scale-95 justify-center min-w-0"
+        className="flex min-w-0 flex-1 items-center justify-center gap-1.5 border border-[var(--console-line)] px-3 py-2.5 text-[11px] font-semibold text-[var(--console-steel)] transition-colors hover:border-[#3A3E43] hover:text-[var(--console-chalk)] active:scale-[0.98]"
       >
-        {side === 'left' && <Icon size={12} className="shrink-0 text-emerald-400" />}
-        <span className="truncate">{labelFor(ex)}: {ex.name}</span>
-        {side === 'right' && <Icon size={12} className="shrink-0 text-amber-400" />}
+        {side === 'left' && <Icon size={12} className="shrink-0" />}
+        <span className="truncate">
+          {labelFor(ex)}: {ex.name}
+        </span>
+        {side === 'right' && <Icon size={12} className="shrink-0" />}
       </button>
     ) : (
       <div className="flex-1" />
     );
 
   return (
-    <div className="mt-2.5 flex items-center gap-2">
-      {btn(prev, ArrowDown, 'left')}
-      {btn(next, ArrowUp, 'right')}
+    <div>
+      <p className="text-[10px] font-semibold text-[var(--console-steel)]">Variation</p>
+      <div className="mt-1.5 flex items-center gap-2">
+        {button(prev, ArrowDown, 'left')}
+        {button(next, ArrowUp, 'right')}
+      </div>
     </div>
   );
 }

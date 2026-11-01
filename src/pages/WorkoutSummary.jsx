@@ -1,11 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Clock, Dumbbell, TrendingUp } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { categoryColor, MODES } from '@/lib/programData';
-import { formatSetResult, getProgressionStatus, formatClock, getPhaseCompletion, maybeAdvanceWeek } from '@/lib/trainingLogic';
+import { getProgressionStatus, formatClock, getPhaseCompletion, maybeAdvanceWeek } from '@/lib/trainingLogic';
 import { loadActiveSession, clearActiveSession, loadSettings, saveCurrentWeek } from '@/lib/storage';
 import { useSessions, useCreateSession } from '@/hooks/useTrainingData';
-import ExerciseVisual from '@/components/ExerciseVisual';
+import useConsoleChrome from '@/hooks/useConsoleChrome';
+
+function resultLine(sets, type) {
+  const reps = sets.map((set) => set.actualReps ?? 0);
+  const secs = sets.map((set) => set.actualSec ?? 0);
+
+  if (type === 'weighted') {
+    const weight = sets[0]?.weight ?? 0;
+    return weight > 0 ? `+${weight} kg × ${reps.join(' / ')}` : `${reps.join(' / ')} reps`;
+  }
+  if (type === 'reps_hold') return `${reps.join(' / ')} reps + ${secs.join(' / ')}s`;
+  if (type === 'skill' || type === 'prehab') {
+    const best = Math.max(...secs);
+    return best > 0 ? `${best}s best` : `${sets.length} set${sets.length === 1 ? '' : 's'} practiced`;
+  }
+  if (type === 'hold') {
+    const best = Math.max(...secs);
+    return sets.length > 1 ? `${best}s best` : `${best}s`;
+  }
+  return `${reps.join(' / ')} reps`;
+}
 
 export default function WorkoutSummary() {
   const navigate = useNavigate();
@@ -16,25 +36,43 @@ export default function WorkoutSummary() {
   const [note, setNote] = useState('');
   const { data: sessions = [] } = useSessions();
   const { mutateAsync: createSession } = useCreateSession();
+  useConsoleChrome();
 
   useEffect(() => {
-    const s = loadActiveSession();
-    if (!s) { navigate('/'); return; }
-    setSession(s);
+    const stored = loadActiveSession();
+    if (!stored) {
+      navigate('/');
+      return;
+    }
+    setSession(stored);
   }, [navigate]);
 
   if (!session) {
-    return <div className="flex items-center justify-center min-h-screen"><div className="w-7 h-7 border-2 border-border border-t-foreground rounded-full animate-spin" /></div>;
+    return (
+      <div className="console-page flex min-h-dvh items-center justify-center">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--console-line)] border-t-[var(--console-chalk)]" />
+      </div>
+    );
   }
 
-  const accent = categoryColor(session.workoutCategory);
-  const completedExercises = session.exercises.filter((e) => e.sets.some((s) => s.completed && !s.skipped));
-  const totalSets = session.exercises.reduce((n, e) => n + e.sets.length, 0);
-  const doneSets = session.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed && !s.skipped).length, 0);
-  const activeMs = session.activeMs != null ? session.activeMs : ((session.finishedAt || Date.now()) - (session.startedAt || Date.now()));
+  const completedExercises = session.exercises.filter((exercise) =>
+    exercise.sets.some((set) => set.completed && !set.skipped),
+  );
+  const totalSets = session.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
+  const doneSets = session.exercises.reduce(
+    (total, exercise) => total + exercise.sets.filter((set) => set.completed && !set.skipped).length,
+    0,
+  );
+  const activeMs =
+    session.activeMs != null
+      ? session.activeMs
+      : (session.finishedAt || Date.now()) - (session.startedAt || Date.now());
 
   const handleSave = async () => {
-    if (saved) { navigate('/'); return; }
+    if (saved) {
+      navigate('/');
+      return;
+    }
     setSaving(true);
     setErr('');
     const payload = {
@@ -56,7 +94,6 @@ export default function WorkoutSummary() {
       await createSession(payload);
       clearActiveSession();
       setSaved(true);
-      // Phase-complete check: enough distinct program workouts logged in week 8.
       const programId = loadSettings().activeProgram || 'skill';
       const synthetic = { ...payload, id: `tmp_${Date.now()}` };
       const allSessions = [...sessions, synthetic];
@@ -67,92 +104,105 @@ export default function WorkoutSummary() {
         maybeAdvanceWeek(allSessions, programId);
         navigate('/');
       }
-    } catch (e) {
-      setErr(e.message || 'Failed to save session');
+    } catch (error) {
+      setErr(error.message || 'Failed to save session');
       setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-5 pt-[max(2rem,env(safe-area-inset-top))]">
-      <div className="text-center mt-4">
-        <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4 animate-scale-in bg-muted">
-          <Check size={30} strokeWidth={3} className="text-foreground" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight">Workout Complete</h1>
-        <p className="text-sm text-muted-foreground mt-1">{session.workoutName} · {session.timeBudgetMin ? `${session.timeBudgetMin} min planned` : (MODES[session.mode]?.label || 'Full')} · Week {session.week}</p>
-      </div>
+    <div className="console-page">
+      <div className="console-doc">
+        <div className="console-doc-inner">
+          <header>
+            <p className="text-[12px] font-semibold text-[var(--console-steel)]">Session complete</p>
+            <h1 className="mt-1 text-[clamp(2rem,9vw,2.75rem)] font-extrabold leading-[0.98] tracking-[-0.045em] text-[var(--console-chalk)]">
+              {session.workoutName}
+            </h1>
+            <p className="mt-2 text-[13px] text-[var(--console-steel)]">
+              {doneSets} of {totalSets} sets, {formatClock(activeMs)}
+              {session.mode && session.mode !== 'full' ? `, ${MODES[session.mode]?.label}` : ''}
+            </p>
+          </header>
 
-      {/* stats */}
-      <div className="grid grid-cols-3 gap-3 mt-7">
-        <Stat icon={Dumbbell} label="Exercises" value={completedExercises.length} accent={accent} />
-        <Stat icon={Check} label="Sets" value={`${doneSets}/${totalSets}`} accent={accent} />
-        <Stat icon={Clock} label="Duration" value={formatClock(activeMs)} accent={accent} />
-      </div>
+          <div className="mt-8 border-t border-[var(--console-line)]">
+            {session.exercises.map((exercise, index) => {
+              const results = exercise.sets.filter((set) => set.completed && !set.skipped);
+              if (!results.length) return null;
+              const accent = categoryColor(exercise.category);
+              const progression = getProgressionStatus(exercise.exerciseId, [
+                ...sessions,
+                { ...session, date: new Date().toISOString() },
+              ]);
 
-      {/* highlights */}
-      <div className="mt-6 flex-1">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-3">Performance</p>
-        <div className="space-y-2">
-          {session.exercises.map((e) => {
-            const results = e.sets.filter((s) => s.completed && !s.skipped);
-            if (!results.length) return null;
-            const prog = getProgressionStatus(e.exerciseId, [...sessions, { ...session, date: new Date().toISOString() }]);
-            return (
-              <div key={e.exerciseId} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card/50">
-                <span className="w-10 h-10 rounded-lg flex items-center justify-center bg-background/60 shrink-0">
-                  <ExerciseVisual visualId={e.visualId} category={e.category} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{e.name}</p>
-                  <p className="text-xs text-muted-foreground tnum mt-0.5">
-                    {results.map((s) => formatSetResult(s, e.type)).join(' · ')}
-                  </p>
+              return (
+                <div
+                  key={`${exercise.exerciseId}-${index}`}
+                  className="flex items-start gap-3 border-b border-[var(--console-line)] py-4"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 h-9 w-[3px] shrink-0"
+                    style={{ background: accent }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h2 className="min-w-0 truncate text-[13px] font-semibold text-[var(--console-steel)]">
+                        {exercise.name}
+                      </h2>
+                      {progression.status === 'earned' && (
+                        <span
+                          className="shrink-0 text-[10px] font-semibold"
+                          style={{ color: accent }}
+                        >
+                          Progress earned
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[20px] font-bold leading-tight tracking-[-0.03em] tabular-nums text-[var(--console-chalk)]">
+                      {resultLine(results, exercise.type)}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[var(--console-steel)]">
+                      {results.length} of {exercise.sets.length} sets
+                    </p>
+                  </div>
                 </div>
-                {prog.status === 'earned' && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md shrink-0" style={{ background: '#34D3991a', color: '#34D399' }}>
-                    <TrendingUp size={11} /> PR?
-                  </span>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          <div className="mt-8">
+            <label
+              htmlFor="session-note"
+              className="text-[11px] font-semibold text-[var(--console-steel)]"
+            >
+              Workout note
+            </label>
+            <textarea
+              id="session-note"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="How did it feel? Anything to remember for next time…"
+              rows={3}
+              className="mt-2 w-full resize-none border border-[var(--console-line)] bg-transparent p-3 text-[14px] leading-relaxed text-[var(--console-chalk)] outline-none placeholder:text-[var(--console-steel)] focus:border-[var(--console-chalk)]"
+            />
+          </div>
+
+          {err && <p className="mt-4 text-[12px] text-[var(--console-oxide)]">{err}</p>}
+
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="console-primary"
+            >
+              <Check size={18} strokeWidth={2.6} />
+              {saving ? 'Saving…' : saved ? 'Done' : 'Save workout'}
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* workout note */}
-      <div className="mt-2">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2">Notes</p>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="How did the workout feel? Anything to remember…"
-          rows={3}
-          className="w-full p-3 rounded-xl border border-border bg-card/50 text-sm resize-none focus:outline-none focus:border-foreground/30 placeholder:text-muted-foreground/60"
-        />
-      </div>
-
-      <div className="pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
-        {err && <p className="text-xs text-red-400 text-center mb-2">{err}</p>}
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full h-14 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50"
-          style={{ background: 'var(--brand)', color: 'var(--brand-fg)' }}
-        >
-          <Check size={18} strokeWidth={3} /> {saving ? 'Saving…' : saved ? 'Done' : 'Save & Finish'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ icon: Icon, label, value, accent }) {
-  return (
-    <div className="p-3.5 rounded-xl border border-border bg-card/50 text-center">
-      <Icon size={15} className="mx-auto text-muted-foreground" />
-      <p className="text-xl font-bold tnum mt-1.5">{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mt-0.5">{label}</p>
     </div>
   );
 }

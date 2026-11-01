@@ -7,9 +7,9 @@ import React from 'react';
 
 const STROKE = 3.2;
 
-function Figure({ children }) {
+function Figure({ children, color }) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" style={{ color: 'hsl(var(--muted-foreground))' }}>
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
       <g stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
         {children}
       </g>
@@ -285,11 +285,11 @@ const POSES = {
   ),
 };
 
-export default function ExerciseVisual({ visualId, category = 'skill', className = '' }) {
+export default function ExerciseVisual({ visualId, category = 'skill', className = '', color }) {
   const pose = POSES[visualId] || POSES.rest;
   return (
     <div className={className}>
-      <Figure>{pose()}</Figure>
+      <Figure color={color}>{pose()}</Figure>
     </div>
   );
 }

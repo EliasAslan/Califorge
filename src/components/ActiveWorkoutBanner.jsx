@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Dumbbell, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { loadActiveSession } from '@/lib/storage';
 import { formatClock } from '@/lib/trainingLogic';
 
@@ -10,62 +10,57 @@ export default function ActiveWorkoutBanner() {
   const [activeSession, setActiveSession] = useState(null);
   const [now, setNow] = useState(Date.now());
 
-  useEffect(() => {
-    const s = loadActiveSession();
-    if (s && !s.finishedAt && s.exercises?.length) {
-      setActiveSession(s);
-    } else {
-      setActiveSession(null);
-    }
-  }, [location.pathname]);
+  const refresh = useCallback(() => {
+    const session = loadActiveSession();
+    setActiveSession(session && !session.finishedAt && session.exercises?.length ? session : null);
+  }, []);
 
-  // Keep live time updated if active and not paused
   useEffect(() => {
-    if (!activeSession || activeSession.paused) return;
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
+    refresh();
+  }, [location.pathname, refresh]);
+
+  // storage.js emits this when a session starts, pauses, resumes or is discarded.
+  useEffect(() => {
+    const onChange = () => refresh();
+    window.addEventListener('califorge:session-changed', onChange);
+    return () => window.removeEventListener('califorge:session-changed', onChange);
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!activeSession || activeSession.paused) return undefined;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [activeSession]);
 
-  if (!activeSession) return null;
+  // Home already has a full session card; the strip is for everywhere else.
+  if (!activeSession || location.pathname === '/') return null;
 
-  const elapsed = (activeSession.activeMs || 0) + (activeSession.resumeAt && !activeSession.paused ? now - activeSession.resumeAt : 0);
-  const doneSets = activeSession.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0);
-  const totalSets = activeSession.exercises.reduce((n, e) => n + e.sets.length, 0);
+  const elapsed =
+    (activeSession.activeMs || 0) +
+    (activeSession.resumeAt && !activeSession.paused ? now - activeSession.resumeAt : 0);
+  const doneSets = activeSession.exercises.reduce(
+    (total, exercise) => total + exercise.sets.filter((set) => set.completed).length,
+    0,
+  );
+  const totalSets = activeSession.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
 
   return (
-    <div className="mx-auto max-w-[620px] px-3 mb-2 animate-fade-in pointer-events-auto">
-      <button
-        type="button"
-        onClick={() => navigate('/workout')}
-        className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl border border-brand/35 bg-card/90 backdrop-blur-xl shadow-lg shadow-black/30 hover:border-brand/60 active:scale-[0.99] transition-all text-left group"
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand)', color: 'var(--brand-fg)' }}>
-            <Dumbbell size={16} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand">Workout in progress</span>
-              {activeSession.paused && (
-                <span className="text-[9px] font-bold uppercase tracking-wide px-1 py-0.2 rounded bg-muted text-muted-foreground">Paused</span>
-              )}
-            </div>
-            <p className="text-xs font-bold truncate text-foreground leading-tight mt-0.5">{activeSession.workoutName}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="text-right">
-            <span className="block text-xs font-bold tnum text-foreground">{formatClock(elapsed)}</span>
-            <span className="block text-[10px] text-muted-foreground tnum">{doneSets}/{totalSets} sets</span>
-          </div>
-          <span className="w-7 h-7 rounded-lg bg-brand/15 text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-brand-fg transition-colors">
-            {activeSession.paused ? <Play size={13} fill="currentColor" /> : <ChevronRight size={15} />}
-          </span>
-        </div>
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => navigate('/workout')}
+      className="flex h-11 w-full items-center gap-3 border-b border-border px-4 text-left transition-colors hover:bg-card/60"
+    >
+      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--brand)]" />
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
+        {activeSession.workoutName}
+      </span>
+      <span className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+        {activeSession.paused ? 'Paused' : `${doneSets}/${totalSets}`}
+      </span>
+      <span className="shrink-0 text-[13px] font-semibold tabular-nums text-foreground">
+        {formatClock(elapsed)}
+      </span>
+      <ChevronRight size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+    </button>
   );
 }

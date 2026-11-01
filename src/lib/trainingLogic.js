@@ -510,10 +510,11 @@ export const formatLastPerformance = (sets, type) => {
   if (!sets || !sets.length) return null;
   if (type === 'weighted') {
     const w = sets[0].weight ?? 0;
-    return `+${w} kg · ${sets.map((s) => s.actualReps ?? 0).join(' / ')}`;
+    const reps = sets.map((s) => s.actualReps ?? 0).join(' / ');
+    return w > 0 ? `+${w} kg, ${reps}` : `${reps} reps`;
   }
-  if (type === 'hold') return sets.map((s) => `${s.actualSec ?? 0}s`).join(' · ');
-  if (type === 'reps_hold') return sets.map((s) => `${s.actualReps ?? 0}+${s.actualSec ?? 0}s`).join(' · ');
+  if (type === 'hold') return sets.map((s) => `${s.actualSec ?? 0}s`).join(' / ');
+  if (type === 'reps_hold') return sets.map((s) => `${s.actualReps ?? 0}+${s.actualSec ?? 0}s`).join(' / ');
   return sets.map((s) => `${s.actualReps ?? 0}`).join(' / ');
 };
 

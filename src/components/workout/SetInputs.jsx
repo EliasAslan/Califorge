@@ -1,71 +1,150 @@
 import React from 'react';
-import NumberField from '@/components/workout/NumberField';
+import { ChevronRight } from 'lucide-react';
 import { missingFields, isSkillType } from '@/lib/trainingLogic';
 
 export { missingFields, isSkillType };
 
-const first = (v) => (Array.isArray(v) ? v[0] : v ?? undefined);
-
-function Field({ label, children }) {
+function Readout({ label, value, unit = '', onOpen, compact = false }) {
   return (
-    <div className="min-w-0">
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">{label}</p>
-      {children}
-    </div>
+    <button type="button" onClick={onOpen} className="block w-full text-left">
+      <span className="console-field-label">{label}</span>
+      <span className={compact ? 'console-value-compact' : 'console-value'}>
+        {value == null ? (
+          <span className="console-value-placeholder">—</span>
+        ) : (
+          <>
+            {value}
+            {unit && <span className="console-value-unit">{unit}</span>}
+          </>
+        )}
+      </span>
+    </button>
   );
 }
 
-export default function SetInputs({ exercise, set, update, invalid = [], size = 'md' }) {
-  const type = exercise.type;
-  const bad = (k) => invalid.includes(k);
-  const reps = (
-    <Field label="Reps">
-      <NumberField label="Reps" value={set.actualReps} seed={first(set.targetReps)} max={300} size={size}
-        invalid={bad('reps')} onChange={(v) => update({ actualReps: v })} />
-    </Field>
+function SecondaryRow({ label, value, unit = '', onOpen }) {
+  return (
+    <button type="button" onClick={onOpen} className="console-secondary-row">
+      <span className="text-[12px] font-medium">{label}</span>
+      <span className="flex items-center gap-1.5">
+        <span className="console-secondary-value">
+          {value == null ? <span className="console-value-placeholder">—</span> : value}
+          {value != null && unit && (
+            <span className="ml-1 text-[12px] font-semibold text-[var(--console-steel)]">{unit}</span>
+          )}
+        </span>
+        <ChevronRight size={15} className="text-[var(--console-steel)]" aria-hidden="true" />
+      </span>
+    </button>
   );
-  const hold = (label = 'Hold') => (
-    <Field label={label}>
-      <NumberField label={label} value={set.actualSec} seed={first(set.targetSec) ?? first(set.holdSec)} max={3600} suffix="s" size={size}
-        invalid={bad('hold')} onChange={(v) => update({ actualSec: v })} />
-    </Field>
-  );
+}
 
-  if (isSkillType(type)) return hold('Best hold (optional)');
+export default function SetInputs({ exercise, set, onOpen, variant = 'focus' }) {
+  const type = exercise.type;
+  const compact = variant === 'list';
+
+  if (isSkillType(type)) {
+    return (
+      <div>
+        <p className="text-[13px] leading-relaxed text-[var(--console-steel)]">
+          Practice for{' '}
+          <span className="font-semibold text-[var(--console-chalk)]">{exercise.durationMin} min</span>
+          . Log your best hold if you want.
+        </p>
+        <SecondaryRow
+          label="Best hold"
+          value={set.actualSec}
+          unit="s"
+          onOpen={() => onOpen('hold')}
+        />
+      </div>
+    );
+  }
+
+  if (type === 'weighted') {
+    return (
+      <div>
+        <Readout
+          label="Reps"
+          value={set.actualReps}
+          onOpen={() => onOpen('reps')}
+          compact={compact}
+        />
+        <SecondaryRow
+          label="Added weight"
+          value={set.weight}
+          unit="kg"
+          onOpen={() => onOpen('weight')}
+        />
+      </div>
+    );
+  }
+
+  if (type === 'reps_hold') {
+    return (
+      <div>
+        <Readout
+          label="Reps"
+          value={set.actualReps}
+          onOpen={() => onOpen('reps')}
+          compact={compact}
+        />
+        <SecondaryRow
+          label="Hold"
+          value={set.actualSec}
+          unit="s"
+          onOpen={() => onOpen('hold')}
+        />
+      </div>
+    );
+  }
+
+  if (type === 'hold') {
+    return (
+      <Readout
+        label="Hold"
+        value={set.actualSec}
+        unit="s"
+        onOpen={() => onOpen('hold')}
+        compact={compact}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      {type === 'weighted' ? (
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Weight">
-            <NumberField label="Weight" value={set.weight} step={2.5} max={300} suffix="kg" size={size}
-              invalid={bad('weight')} onChange={(v) => update({ weight: v })} />
-          </Field>
-          {reps}
-        </div>
-      ) : type === 'reps_hold' ? (
-        <div className="grid grid-cols-2 gap-2.5">{reps}{hold()}</div>
-      ) : type === 'hold' ? hold() : reps}
-      {(exercise.rpe || exercise.rir) && (
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
-            {exercise.rpe ? `RPE · target ${exercise.rpe}` : `RIR · target ${exercise.rir}`}
-          </span>
-          <div className="flex gap-1.5 ml-auto" role="group" aria-label={exercise.rpe ? 'RPE' : 'RIR'}>
-            {(exercise.rpe ? ['7', '8', '9', '10'] : ['0', '1', '2', '3']).map((n) => {
-              const key = exercise.rpe ? 'rpe' : 'rir';
-              const on = set[key] === n;
-              return (
-                <button key={n} type="button" aria-pressed={on}
-                  onClick={() => update({ [key]: on ? null : n })}
-                  className={`w-10 h-9 rounded-lg text-xs font-semibold border tnum transition-colors ${on ? 'border-foreground/40 bg-foreground text-background' : 'border-border text-muted-foreground'}`}>
-                  {n}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+    <Readout
+      label="Reps"
+      value={set.actualReps}
+      onOpen={() => onOpen('reps')}
+      compact={compact}
+    />
+  );
+}
+
+export function EffortRow({ exercise, set, update }) {
+  const kind = exercise.rpe ? 'rpe' : exercise.rir ? 'rir' : null;
+  if (!kind) return null;
+  const options = kind === 'rpe' ? ['7', '8', '9', '10'] : ['0', '1', '2', '3'];
+
+  return (
+    <div className="console-effort" role="group" aria-label={kind.toUpperCase()}>
+      <span className="console-effort-label">
+        {kind === 'rpe' ? `RPE, target ${exercise.rpe}` : `RIR, target ${exercise.rir}`}
+      </span>
+      {options.map((option) => {
+        const on = set[kind] === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={on}
+            onClick={() => update({ [kind]: on ? null : option })}
+            className={`console-effort-chip ${on ? 'is-on' : ''}`}
+          >
+            {option}
+          </button>
+        );
+      })}
     </div>
   );
 }

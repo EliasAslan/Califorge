@@ -16,8 +16,9 @@ const storage = await import('../src/lib/storage.js');
 
 assert.equal(storage.loadWorkoutLayout(), 'focus', 'Default layout should be focus');
 
+// The retired "minimal" layout falls back to the Focus console.
 storage.saveWorkoutLayout('minimal');
-assert.equal(storage.loadWorkoutLayout(), 'minimal', 'Layout preference should persist minimal');
+assert.equal(storage.loadWorkoutLayout(), 'focus', 'Retired minimal layout should fall back to focus');
 
 storage.saveWorkoutLayout('list');
 assert.equal(storage.loadWorkoutLayout(), 'list', 'Layout preference should persist list');
@@ -28,6 +29,15 @@ assert.equal(storage.loadWorkoutLayout(), 'focus', 'Layout preference should per
 // Invalid layout should fallback to focus
 storage.saveWorkoutLayout('invalid-mode');
 assert.equal(storage.loadWorkoutLayout(), 'focus', 'Invalid layout should fallback to focus');
+
+// Per-exercise increments are explicit and remembered.
+assert.equal(storage.loadExerciseIncrement('ex_pushup', 'weight', 2.5), 2.5, 'Default weight step');
+storage.saveExerciseIncrement('ex_pushup', 'weight', 5);
+assert.equal(storage.loadExerciseIncrement('ex_pushup', 'weight', 2.5), 5, 'Weight step should persist');
+assert.equal(storage.loadExerciseIncrement('ex_pushup', 'reps', 1), 1, 'Other fields keep their defaults');
+storage.saveExerciseIncrement('ex_pushup', 'hold', 10);
+assert.equal(storage.loadExerciseIncrement('ex_pushup', 'hold', 5), 10, 'Hold step should persist');
+
 
 // 2. Pure training-logic validation checks
 const sourceRoot = path.resolve('src/lib');

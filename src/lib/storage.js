@@ -43,8 +43,20 @@ export const loadActiveSession = () => {
   }
   return s;
 };
-export const saveActiveSession = (session) => set('activeSession', session);
-export const clearActiveSession = () => remove('activeSession');
+// The bottom dock listens for this so an in-progress strip never goes stale
+// after a session is started, paused, resumed or discarded.
+const notifySessionChanged = () => {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('califorge:session-changed'));
+};
+
+export const saveActiveSession = (session) => {
+  set('activeSession', session);
+  notifySessionChanged();
+};
+export const clearActiveSession = () => {
+  remove('activeSession');
+  notifySessionChanged();
+};
 
 // ── Current week (tracked per active training program) ───────────────────────
 // Stored as a map { [programId]: week } so switching phases preserves each
@@ -106,12 +118,30 @@ export const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...get('settings', {})
 export const saveSettings = (settings) => set('settings', settings);
 
 // Last-used workout presentation; separate from session data.
+// "minimal" was retired — existing users fall back to the Focus console.
 export const loadWorkoutLayout = () => {
   const layout = get('workoutLayout', 'focus');
-  return ['focus', 'minimal', 'list'].includes(layout) ? layout : 'focus';
+  return ['focus', 'list'].includes(layout) ? layout : 'focus';
 };
 export const saveWorkoutLayout = (layout) => {
-  if (['focus', 'minimal', 'list'].includes(layout)) set('workoutLayout', layout);
+  if (['focus', 'list'].includes(layout)) set('workoutLayout', layout);
+};
+
+// Per-exercise logging steps, set explicitly in the wheel sheet.
+// Shape: { [exerciseId]: { weight?: number, reps?: number, hold?: number } }
+export const loadExerciseIncrements = () => {
+  const stored = get('exerciseIncrements', {});
+  return stored && typeof stored === 'object' ? stored : {};
+};
+export const loadExerciseIncrement = (exerciseId, field, fallback) => {
+  const value = loadExerciseIncrements()[exerciseId]?.[field];
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+export const saveExerciseIncrement = (exerciseId, field, step) => {
+  if (!exerciseId || !field || !Number.isFinite(step) || step <= 0) return;
+  const all = loadExerciseIncrements();
+  all[exerciseId] = { ...(all[exerciseId] || {}), [field]: step };
+  set('exerciseIncrements', all);
 };
 
 // ── Enjoyment ratings (1–5 per exercise) ──────────────────────────────────────

@@ -12,7 +12,7 @@ export default function Layout() {
       <main
         key={pathname}
         className={`mx-auto max-w-[620px] min-h-screen animate-fade-in ${
-          inSession ? '' : 'pb-[calc(7.5rem+env(safe-area-inset-bottom))]'
+          inSession ? '' : 'pb-[calc(var(--dock-height)+1.25rem)]'
         }`}
       >
         <Outlet />
