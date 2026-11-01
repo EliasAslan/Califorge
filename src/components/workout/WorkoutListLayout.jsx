@@ -5,7 +5,7 @@ import VerticalNumberPicker from '@/components/workout/VerticalNumberPicker';
 
 export default function WorkoutListLayout({
   session, doneSets, totalSets, progress, paused, onSelectSet, update,
-  completeSet, skipSet, togglePause, renderTopBar, setLayout, layout,
+  completeSet, skipSet, togglePause, renderTopBar,
 }) {
   return (
     <div className="min-h-screen flex flex-col px-4 sm:px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -18,12 +18,6 @@ export default function WorkoutListLayout({
         <div className="h-1.5 rounded-full bg-border overflow-hidden">
           <div className="h-full transition-all" style={{ width: (progress * 100) + '%', background: 'hsl(var(--foreground))' }} />
         </div>
-      </div>
-      <div className="flex items-center gap-1 p-1 rounded-xl border border-border bg-card/40 mb-4" aria-label="Workout layout">
-        {['focus', 'minimal', 'list'].map((mode) => (
-          <button key={mode} onClick={() => setLayout(mode)} aria-pressed={layout === mode}
-            className={'flex-1 h-9 rounded-lg text-xs font-semibold capitalize transition-colors ' + (layout === mode ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}>{mode}</button>
-        ))}
       </div>
       <div className="space-y-3 flex-1">
         {session.exercises.map((exercise, ei) => (
