@@ -6,7 +6,7 @@ import { formatTarget, getLastPerformance, formatLastPerformance, formatClock, g
 import { loadActiveSession, saveActiveSession, clearActiveSession, loadWorkoutLayout, saveWorkoutLayout, STALE_MS } from '@/lib/storage';
 import { useSessions } from '@/hooks/useTrainingData';
 import ExerciseVisual from '@/components/ExerciseVisual';
-import VerticalNumberPicker from '@/components/workout/VerticalNumberPicker';
+import SetInputs from '@/components/workout/SetInputs';
 import WorkoutListLayout from '@/components/workout/WorkoutListLayout';
 import RestTimer from '@/components/workout/RestTimer';
 import ExerciseNote from '@/components/workout/ExerciseNote';
@@ -479,67 +479,15 @@ export default function WorkoutSession() {
         </div>
       )}
 
-      {/* inputs */}
+      {/* set logging */}
       <div className="mt-4 flex-1">
         {isSkill ? (
-          <div className="p-4 rounded-xl border border-border bg-card/50 text-center">
-            <p className="text-sm text-muted-foreground">Practice for <span className="text-foreground font-semibold">{cur.durationMin} min</span></p>
-            <p className="text-xs text-muted-foreground mt-1">Log your best hold below if you like.</p>
-            <div className="mt-4 max-w-[220px] mx-auto">
-              <VerticalNumberPicker label="Best hold" value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} suffix="s" accent={accent} />
-            </div>
+          <div className="p-3 rounded-xl border border-border bg-card/40">
+            <p className="text-sm text-muted-foreground mb-3">Practice for <span className="text-foreground font-semibold">{cur.durationMin} min</span>. Log your best hold if you want.</p>
+            <SetInputs exercise={cur} set={set} update={update} size={minimal ? 'sm' : 'md'} />
           </div>
         ) : (
-          <div className="space-y-4">
-            {cur.type === 'weighted' && (
-              <div>
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Weight</p>
-                <VerticalNumberPicker value={set.weight ?? 0} onChange={(v) => update({ weight: v })} step={2.5} suffix="kg" accent={accent} />
-              </div>
-            )}
-            {(cur.type === 'reps' || cur.type === 'weighted') && (
-              <div>
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Reps</p>
-                <VerticalNumberPicker value={set.actualReps ?? 0} onChange={(v) => update({ actualReps: v })} accent={accent} />
-              </div>
-            )}
-            {cur.type === 'hold' && (
-              <div>
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Hold (sec)</p>
-                <VerticalNumberPicker value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} accent={accent} />
-              </div>
-            )}
-            {cur.type === 'reps_hold' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Reps</p>
-                  <VerticalNumberPicker value={set.actualReps ?? 0} onChange={(v) => update({ actualReps: v })} accent={accent} />
-                </div>
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Hold (s)</p>
-                  <VerticalNumberPicker value={set.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} accent={accent} />
-                </div>
-              </div>
-            )}
-            {(cur.rpe || cur.rir) && (
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
-                  {cur.rpe ? 'RPE' : 'RIR'} {cur.rpe || cur.rir}
-                </span>
-                <div className="flex gap-1.5">
-                  {[1, 2, 3].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => update(cur.rpe ? { rpe: String(n + 6) } : { rir: String(n) })}
-                      className={`px-2.5 h-7 rounded-md text-xs font-medium border ${set[cur.rpe ? 'rpe' : 'rir'] ? 'border-foreground/30 bg-foreground/5' : 'border-border'}`}
-                    >
-                      {cur.rpe ? n + 6 : n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <SetInputs exercise={cur} set={set} update={update} size={minimal ? 'sm' : 'md'} />
         )}
         <div className="mt-4">
           <ExerciseNote value={cur.note || ''} onChange={updateExerciseNote} accent={accent} />
