@@ -33,6 +33,8 @@ export default function WorkoutListLayout({
             <div className="divide-y divide-border/70">
               {exercise.sets.map((rowSet, si) => {
                 const active = session.cursor.exerciseIndex === ei && session.cursor.setIndex === si;
+                const isReps = ['reps', 'weighted', 'reps_hold'].includes(exercise.type);
+                const isHold = ['hold', 'reps_hold'].includes(exercise.type);
                 const isSkill = ['skill', 'prehab'].includes(exercise.type);
                 const summary = exercise.type === 'weighted'
                   ? (rowSet.actualReps ?? '—') + ' reps · ' + (rowSet.weight ?? '—') + ' kg'
