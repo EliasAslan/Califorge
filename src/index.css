@@ -813,6 +813,7 @@
   scroll-behavior: smooth;
   scrollbar-width: none;
   touch-action: pan-y;
+  background: var(--console-surface);
 }
 .console-wheel::-webkit-scrollbar { display: none; }
 .console-wheel-item {
@@ -825,14 +826,15 @@
   font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  opacity: 0.5;
-  transition: font-size 100ms ease, opacity 100ms ease, color 100ms ease;
+  opacity: 0.7;
+  transition: font-size 100ms ease, opacity 100ms ease, color 100ms ease, background-color 100ms ease;
 }
 .console-wheel-item.is-selected {
   color: var(--console-chalk);
   font-size: 26px;
   font-weight: 800;
   opacity: 1;
+  background: var(--console-surface-2);
 }
 .console-wheel-band {
   position: absolute;
@@ -843,19 +845,27 @@
   border-bottom: 1px solid var(--console-line);
   pointer-events: none;
 }
-.console-wheel-fade {
-  position: absolute;
-  inset-inline: 0;
-  height: 54px;
-  pointer-events: none;
+.console-wheel-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 8px;
 }
-.console-wheel-fade-top {
-  top: 0;
-  background: linear-gradient(var(--console-surface), transparent);
+.console-secondary-button {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--console-line);
+  border-radius: 12px;
+  color: var(--console-steel);
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
-.console-wheel-fade-bottom {
-  bottom: 0;
-  background: linear-gradient(transparent, var(--console-surface));
+.console-secondary-button:hover {
+  border-color: var(--console-chalk);
+  color: var(--console-chalk);
+  background: var(--console-surface-2);
 }
 
 .console-chip {

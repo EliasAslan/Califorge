@@ -210,13 +210,22 @@ export default function WheelSheet({
       title={title}
       description={description}
       footer={
-        <button
-          type="button"
-          onClick={commit}
-          className="console-primary"
-        >
-          Use {formatNumber(draft)}{unit ? ` ${unit}` : ''}
-        </button>
+        <div className="console-wheel-footer">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="console-secondary-button"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={commit}
+            className="console-primary"
+          >
+            Confirm {formatNumber(draft)}{unit ? ` ${unit}` : ''}
+          </button>
+        </div>
       }
     >
       <div className="flex items-end justify-between gap-3 pb-1">
@@ -271,7 +280,6 @@ export default function WheelSheet({
       )}
 
       <div className="console-wheel-wrap" data-vaul-no-drag>
-        <div className="console-wheel-fade console-wheel-fade-top" aria-hidden="true" />
         <div
           ref={scrollRef}
           className="console-wheel"
@@ -298,7 +306,6 @@ export default function WheelSheet({
           <div style={{ height: PAD }} aria-hidden="true" />
         </div>
         <div className="console-wheel-band" aria-hidden="true" />
-        <div className="console-wheel-fade console-wheel-fade-bottom" aria-hidden="true" />
       </div>
 
       {stepOptions.length > 0 && onStepChange && (
