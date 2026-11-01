@@ -1,50 +1,121 @@
-// Rest-timer feedback: sound + vibration, with graceful fallback.
-// Both respect the user's settings and silently no-op if the capability is missing.
-import { loadSettings } from './storage';
+// Small, optional audio and haptic cues for meaningful workout interactions.
+// Rest alerts keep their own settings so interface feedback can be muted independently.
+import { loadSettings } from './storage.js';
 
-let audioCtx = null;
-const getCtx = () => {
+let audioContext = null;
+
+const getAudioContext = () => {
   if (typeof window === 'undefined') return null;
   try {
-    const Ctor = window.AudioContext || window.webkitAudioContext;
-    if (!Ctor) return null;
-    audioCtx = audioCtx || new Ctor();
-    return audioCtx;
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) return null;
+    audioContext = audioContext || new AudioContextCtor();
+    if (audioContext.state === 'suspended') {
+      const resume = audioContext.resume();
+      resume?.catch?.(() => {});
+    }
+    return audioContext;
   } catch {
     return null;
   }
 };
 
-// Short two-tone "rest done" chime via the Web Audio API (no asset needed).
+const playTones = (notes) => {
+  const context = getAudioContext();
+  if (!context) return;
+  try {
+    const startAt = context.currentTime;
+    notes.forEach(({ frequency, delay = 0, duration = 0.07, volume = 0.03 }) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const start = startAt + delay;
+      const end = start + duration;
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, end);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(end + 0.01);
+    });
+  } catch {
+    // Audio is an enhancement; unsupported or blocked audio stays silent.
+  }
+};
+
+const UI_CUES = {
+  selection: [{ frequency: 620, duration: 0.035, volume: 0.012 }],
+  confirm: [
+    { frequency: 720, duration: 0.055, volume: 0.022 },
+    { frequency: 960, delay: 0.055, duration: 0.07, volume: 0.024 },
+  ],
+  setComplete: [
+    { frequency: 660, duration: 0.075, volume: 0.03 },
+    { frequency: 880, delay: 0.07, duration: 0.09, volume: 0.032 },
+  ],
+  workoutStart: [
+    { frequency: 523, duration: 0.09, volume: 0.026 },
+    { frequency: 659, delay: 0.09, duration: 0.1, volume: 0.03 },
+    { frequency: 784, delay: 0.19, duration: 0.12, volume: 0.034 },
+  ],
+  workoutFinish: [
+    { frequency: 523, duration: 0.1, volume: 0.026 },
+    { frequency: 659, delay: 0.09, duration: 0.1, volume: 0.03 },
+    { frequency: 784, delay: 0.18, duration: 0.11, volume: 0.032 },
+    { frequency: 1046, delay: 0.28, duration: 0.16, volume: 0.036 },
+  ],
+};
+
+const HAPTIC_CUES = {
+  tick: [5],
+  selection: [8],
+  confirm: [12],
+  setComplete: [18, 35, 12],
+  workoutStart: [18, 35, 24],
+  workoutFinish: [35, 45, 30, 60, 70],
+};
+
+export const playUiSound = (cue = 'selection') => {
+  if (!loadSettings().interfaceSound) return;
+  const notes = UI_CUES[cue];
+  if (notes) playTones(notes);
+};
+
+export const haptic = (cue = 'selection') => {
+  if (!loadSettings().interfaceHaptics) return;
+  const pattern = HAPTIC_CUES[cue] || HAPTIC_CUES.selection;
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(pattern);
+    }
+  } catch {
+    // Vibration is unavailable on some devices and browsers.
+  }
+};
+
+export const triggerFeedback = (cue = 'selection') => {
+  haptic(cue);
+  playUiSound(cue);
+};
+
+// Rest alerts retain their independent sound and vibration preferences.
 export const playRestCompleteSound = () => {
   if (!loadSettings().restSound) return;
-  const ctx = getCtx();
-  if (!ctx) return;
-  try {
-    if (ctx.state === 'suspended') ctx.resume();
-    const now = ctx.currentTime;
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.type = 'sine';
-    o.frequency.setValueAtTime(880, now);
-    o.frequency.setValueAtTime(1320, now + 0.14);
-    g.gain.setValueAtTime(0.0001, now);
-    g.gain.exponentialRampToValueAtTime(0.22, now + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-    o.start(now);
-    o.stop(now + 0.42);
-  } catch {
-    /* audio unavailable — silent fallback */
-  }
+  playTones([
+    { frequency: 880, duration: 0.14, volume: 0.075 },
+    { frequency: 1320, delay: 0.14, duration: 0.22, volume: 0.075 },
+  ]);
 };
 
 export const vibrate = (pattern = [120, 60, 120]) => {
   if (!loadSettings().restVibration) return;
   try {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(pattern);
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(pattern);
+    }
   } catch {
-    /* vibration unavailable — silent fallback */
+    // Vibration is unavailable on some devices and browsers.
   }
 };
