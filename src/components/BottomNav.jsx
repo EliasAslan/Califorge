@@ -78,9 +78,9 @@ export default function BottomNav() {
     <nav
       ref={navRef}
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 px-3"
     >
-      <div className="mx-auto w-full max-w-[620px]">
+      <div className="mx-auto w-full max-w-[620px] overflow-hidden rounded-2xl border border-border bg-background/95 shadow-2xl shadow-black/25 backdrop-blur">
         <ActiveWorkoutBanner />
         <div className="grid grid-cols-5">
           {ITEMS.map(({ to, label, icon: Icon, exact }) => (
@@ -90,7 +90,7 @@ export default function BottomNav() {
               end={exact}
               onClick={triggerHaptic}
               className={({ isActive }) =>
-                `relative flex h-[62px] flex-col items-center justify-center gap-1.5 outline-none transition-colors duration-150 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand)] ${
+                `relative flex h-[70px] flex-col items-center justify-center gap-1.5 outline-none transition-colors duration-150 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand)] ${
                   isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`
               }
@@ -103,9 +103,9 @@ export default function BottomNav() {
                       className="absolute inset-x-4 top-0 h-[2px] rounded-full bg-[var(--brand)]"
                     />
                   )}
-                  <Icon size={21} strokeWidth={isActive ? 2.2 : 1.9} aria-hidden="true" />
+                  <Icon size={23} strokeWidth={isActive ? 2.2 : 1.9} aria-hidden="true" />
                   <span
-                    className={`text-[11px] leading-none tracking-[-0.01em] ${
+                    className={`text-[12px] leading-none tracking-[-0.01em] ${
                       isActive ? 'font-semibold' : 'font-medium'
                     }`}
                   >

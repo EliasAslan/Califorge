@@ -188,7 +188,11 @@ export default function WorkoutSummary() {
             />
           </div>
 
-          {err && <p className="mt-4 text-[12px] text-[var(--console-oxide)]">{err}</p>}
+          {err && (
+            <p role="alert" className="mt-4 text-[12px] text-[var(--console-oxide)]">
+              {err}
+            </p>
+          )}
 
           <div className="mt-6">
             <button

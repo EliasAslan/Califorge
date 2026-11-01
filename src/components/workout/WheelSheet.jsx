@@ -114,9 +114,8 @@ export default function WheelSheet({
 
   const handleScroll = () => {
     if (settleRef.current) clearTimeout(settleRef.current);
-    settleRef.current = setTimeout(() => {
-      const element = scrollRef.current;
-      if (!element) return;
+    const element = scrollRef.current;
+    if (element && values.length > 0) {
       const index = Math.max(0, Math.min(values.length - 1, Math.round(element.scrollTop / ITEM_H)));
       const next = values[index];
       if (next !== draftRef.current) {
@@ -130,6 +129,14 @@ export default function WheelSheet({
           }
         }
       }
+    }
+    settleRef.current = setTimeout(() => {
+      const element = scrollRef.current;
+      if (!element) return;
+      const index = Math.max(0, Math.min(values.length - 1, Math.round(element.scrollTop / ITEM_H)));
+      const next = values[index];
+      element.scrollTo({ top: index * ITEM_H, behavior: 'auto' });
+      setDraft(next);
     }, 55);
   };
 
@@ -203,13 +210,22 @@ export default function WheelSheet({
       title={title}
       description={description}
       footer={
-        <button
-          type="button"
-          onClick={commit}
-          className="console-primary"
-        >
-          Use {formatNumber(draft)}{unit ? ` ${unit}` : ''}
-        </button>
+        <div className="console-wheel-footer">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="console-secondary-button"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={commit}
+            className="console-primary"
+          >
+            Confirm {formatNumber(draft)}{unit ? ` ${unit}` : ''}
+          </button>
+        </div>
       }
     >
       <div className="flex items-end justify-between gap-3 pb-1">
@@ -244,7 +260,7 @@ export default function WheelSheet({
           </button>
         )}
         <span className="pb-1 text-[11px] font-medium text-[var(--console-steel)]">
-          {typing ? 'Enter to set' : 'Tap to type'}
+          {typing ? 'Enter to set' : 'Swipe or tap a value'}
         </span>
       </div>
 
@@ -264,7 +280,6 @@ export default function WheelSheet({
       )}
 
       <div className="console-wheel-wrap" data-vaul-no-drag>
-        <div className="console-wheel-fade console-wheel-fade-top" aria-hidden="true" />
         <div
           ref={scrollRef}
           className="console-wheel"
@@ -291,7 +306,6 @@ export default function WheelSheet({
           <div style={{ height: PAD }} aria-hidden="true" />
         </div>
         <div className="console-wheel-band" aria-hidden="true" />
-        <div className="console-wheel-fade console-wheel-fade-bottom" aria-hidden="true" />
       </div>
 
       {stepOptions.length > 0 && onStepChange && (

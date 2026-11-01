@@ -15,11 +15,12 @@ export default function History() {
   const sorted = [...sessions]
     .filter((s) => showIncomplete || completedSets(s) > 0)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const commentSessions = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
   const incompleteCount = sessions.filter((s) => completedSets(s) === 0).length;
 
   // group workouts by month
   const groups = [];
-  sorted.forEach((s) => {
+  commentSessions.forEach((s) => {
     const d = new Date(s.date);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     const label = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
