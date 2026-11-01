@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, Pause, Play, SkipForward } from 'lucide-react';
 import ExerciseVisual from '@/components/ExerciseVisual';
-import VerticalNumberPicker from '@/components/workout/VerticalNumberPicker';
+import SetInputs from '@/components/workout/SetInputs';
 
 export default function WorkoutListLayout({
   session, doneSets, totalSets, progress, paused, onSelectSet, update,
@@ -33,8 +33,6 @@ export default function WorkoutListLayout({
             <div className="divide-y divide-border/70">
               {exercise.sets.map((rowSet, si) => {
                 const active = session.cursor.exerciseIndex === ei && session.cursor.setIndex === si;
-                const isReps = ['reps', 'weighted', 'reps_hold'].includes(exercise.type);
-                const isHold = ['hold', 'reps_hold'].includes(exercise.type);
                 const isSkill = ['skill', 'prehab'].includes(exercise.type);
                 const summary = exercise.type === 'weighted'
                   ? (rowSet.actualReps ?? '—') + ' reps · ' + (rowSet.weight ?? '—') + ' kg'
@@ -49,15 +47,7 @@ export default function WorkoutListLayout({
                     </button>
                     {active && (
                       <div className="px-3.5 pb-4 pt-1 space-y-3">
-                        {isSkill ? (
-                          <div><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Best hold</p><VerticalNumberPicker label="Best hold" value={rowSet.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} suffix="s" max={3600} /></div>
-                        ) : (
-                          <>
-                            {exercise.type === 'weighted' && <div><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Weight</p><VerticalNumberPicker label="Weight" value={rowSet.weight ?? 0} onChange={(v) => update({ weight: v })} step={2.5} suffix="kg" max={300} /></div>}
-                            {isReps && <div><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Reps</p><VerticalNumberPicker label="Reps" value={rowSet.actualReps ?? 0} onChange={(v) => update({ actualReps: v })} max={300} /></div>}
-                            {isHold && <div><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Hold</p><VerticalNumberPicker label="Hold duration" value={rowSet.actualSec ?? 0} onChange={(v) => update({ actualSec: v })} suffix="s" max={3600} /></div>}
-                          </>
-                        )}
+                        <SetInputs exercise={exercise} set={rowSet} update={update} size="sm" />
                         <div className="flex gap-2">
                           {!paused && !rowSet.completed && <button onClick={completeSet} className="flex-1 h-11 rounded-xl text-sm font-semibold bg-emerald-500 text-emerald-950"><Check size={15} className="inline mr-1.5" />Complete set</button>}
                           {!paused && !rowSet.completed && !isSkill && <button onClick={skipSet} className="h-11 px-3 rounded-xl border border-border text-sm text-muted-foreground"><SkipForward size={15} className="inline mr-1" />Skip</button>}
