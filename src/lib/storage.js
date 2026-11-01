@@ -105,6 +105,8 @@ export const DEFAULT_SETTINGS = {
   equipment: ['Parallettes', 'Rings', 'Pull-up bar', 'Resistance bands', 'Dumbbells'],
   notifications: false,
   reduceMotion: false,
+  interfaceSound: true,
+  interfaceHaptics: true,
   restSound: true,
   restVibration: true,
   athleteName: 'Athlete',
@@ -115,7 +117,10 @@ export const DEFAULT_SETTINGS = {
 };
 
 export const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...get('settings', {}) });
-export const saveSettings = (settings) => set('settings', settings);
+export const saveSettings = (settings) => {
+  set('settings', settings);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('califorge:settings-changed'));
+};
 
 // Last-used workout presentation; separate from session data.
 // "minimal" was retired — existing users fall back to the Focus console.
@@ -163,6 +168,7 @@ export const clearLocalData = () => {
   remove('currentWeek');
   remove('programWeeks');
   remove('programCycleStarts');
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('califorge:settings-changed'));
 };
 // Restore only known local preference keys from a user-selected backup.
 export const restoreLocalState = (backup = {}) => {
