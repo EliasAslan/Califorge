@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, TrendingUp, CalendarDays, Settings2, History as HistoryIcon } from 'lucide-react';
 import ActiveWorkoutBanner from '@/components/ActiveWorkoutBanner';
 import { triggerFeedback } from '@/lib/workoutFeedback';
+import { withViewTransition } from '@/lib/viewTransition';
 
 // Today → plan → progress → history → settings.
 const ITEMS = [
@@ -16,7 +17,11 @@ const ITEMS = [
 export default function BottomNav() {
   const navRef = useRef(null);
   const publishRef = useRef(() => {});
+  const navigate = useNavigate();
   const { pathname } = useLocation();
+  const currentIndex = ITEMS.findIndex((item) =>
+    item.exact ? pathname === item.to : pathname.startsWith(item.to),
+  );
 
   // Publish the live dock height so Layout can reserve exactly the right space.
   // The strip can appear after this mounts (session load), so watch the nav's
@@ -82,7 +87,14 @@ export default function BottomNav() {
               key={to}
               to={to}
               end={exact}
-              onClick={() => triggerFeedback('selection')}
+              onClick={(event) => {
+                event.preventDefault();
+                triggerFeedback('selection');
+                const targetIndex = ITEMS.findIndex((item) => item.to === to);
+                const direction =
+                  targetIndex > currentIndex ? 'forward' : targetIndex < currentIndex ? 'backward' : null;
+                withViewTransition(() => navigate(to), 'tab', direction);
+              }}
               className={({ isActive }) =>
                 `relative flex h-[74px] flex-col items-center justify-center gap-2 outline-none transition-colors duration-150 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand)] ${
                   isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
