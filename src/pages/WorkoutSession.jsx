@@ -42,7 +42,7 @@ export default function WorkoutSession() {
   const [session, setSession] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmMode, setConfirmMode] = useState(null);
   const [missingAt, setMissingAt] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [layout, setLayout] = useState(() => loadWorkoutLayout());
@@ -311,13 +311,16 @@ export default function WorkoutSession() {
   };
 
   const exit = () => {
-    if (doneSets > 0 && !window.confirm('Leave the workout? Your progress is saved so you can resume.')) return;
+    if (doneSets > 0) {
+      setConfirmMode('leave');
+      return;
+    }
     navigate('/');
   };
 
   const cancelWorkout = () => {
     clearActiveSession();
-    setConfirmCancel(false);
+    setConfirmMode(null);
     navigate('/');
   };
 
@@ -465,7 +468,7 @@ export default function WorkoutSession() {
                   role="menuitem"
                   onClick={() => {
                     setShowMenu(false);
-                    setConfirmCancel(true);
+                    setConfirmMode('cancel');
                   }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-oxide)] hover:bg-[var(--console-surface-2)]"
                 >
@@ -479,38 +482,67 @@ export default function WorkoutSession() {
     </header>
   );
 
-  const confirmCancelModal = confirmCancel && (
+  const confirmLeave = confirmMode === 'leave';
+  const confirmModal = confirmMode && (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-6"
-      onClick={() => setConfirmCancel(false)}
+      onClick={() => setConfirmMode(null)}
     >
       <div
         className="w-full max-w-[340px] rounded-2xl border border-[var(--console-line)] bg-[var(--console-surface)] p-5"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--console-oxide)_16%,transparent)]">
-          <Trash2 size={18} className="text-[var(--console-oxide)]" />
+        <div
+          className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl"
+          style={{
+            background: confirmLeave
+              ? 'color-mix(in srgb, var(--console-chalk) 10%, transparent)'
+              : 'color-mix(in srgb, var(--console-oxide) 16%, transparent)',
+          }}
+        >
+          {confirmLeave ? (
+            <X size={18} className="text-[var(--console-chalk)]" />
+          ) : (
+            <Trash2 size={18} className="text-[var(--console-oxide)]" />
+          )}
         </div>
-        <h3 className="text-[16px] font-bold text-[var(--console-chalk)]">Cancel workout?</h3>
+        <h3 className="text-[16px] font-bold text-[var(--console-chalk)]">
+          {confirmLeave ? 'Leave workout?' : 'Cancel workout?'}
+        </h3>
         <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--console-steel)]">
-          Your progress for this session will be discarded. This cannot be undone.
+          {confirmLeave
+            ? 'Your progress is saved. You can resume from the dock.'
+            : 'Your progress for this session will be discarded. This cannot be undone.'}
         </p>
         <div className="mt-4 grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => setConfirmCancel(false)}
+            onClick={() => setConfirmMode(null)}
             className="h-11 rounded-xl border border-[var(--console-line)] text-[13px] font-semibold text-[var(--console-chalk)]"
           >
-            Keep workout
+            Keep training
           </button>
-          <button
-            type="button"
-            onClick={cancelWorkout}
-            className="h-11 rounded-xl text-[13px] font-semibold text-white"
-            style={{ background: 'var(--console-oxide)' }}
-          >
-            Cancel workout
-          </button>
+          {confirmLeave ? (
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmMode(null);
+                navigate('/');
+              }}
+              className="h-11 rounded-xl bg-[var(--console-chalk)] text-[13px] font-semibold text-[var(--console-bg)]"
+            >
+              Leave workout
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={cancelWorkout}
+              className="h-11 rounded-xl text-[13px] font-semibold text-white"
+              style={{ background: 'var(--console-oxide)' }}
+            >
+              Cancel workout
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -627,7 +659,7 @@ export default function WorkoutSession() {
           />
         </div>
         {sheets}
-        {confirmCancelModal}
+        {confirmModal}
       </div>
     );
   }
@@ -654,7 +686,7 @@ export default function WorkoutSession() {
           />
         </div>
         {sheets}
-        {confirmCancelModal}
+        {confirmModal}
       </div>
     );
   }
@@ -681,7 +713,11 @@ export default function WorkoutSession() {
             <p className="mt-1 text-[13px] text-[var(--console-steel)]">{cur.variation}</p>
             <p className="console-set-context">
               Set {targetCursor.setIndex + 1} of {cur.sets.length}
-              {set.completed ? (set.skipped ? ' · Skipped' : ' · Logged') : ' · Ready to log'}
+              {set.completed
+                ? set.skipped
+                  ? ', skipped'
+                  : ', logged'
+                : ', ready to log'}
             </p>
 
             {hasLevels && (
@@ -693,24 +729,26 @@ export default function WorkoutSession() {
               />
             )}
 
-            <div className="console-ladder" aria-label={`${cur.name} set progress`}>
-              {cur.sets.map((rowSet, index) => {
-                const isCurrent = index === targetCursor.setIndex;
-                const state = rowSet.completed ? 'is-past' : '';
-                return (
-                  <div
-                    key={rowSet.id || index}
-                    className={`console-ladder-step ${state} ${isCurrent ? 'is-current' : ''}`}
-                    aria-current={isCurrent ? 'step' : undefined}
-                  >
-                    <div className="console-ladder-bar" />
-                    <span className="console-ladder-label">
-                      {rowSet.completed ? 'Done' : `Set ${index + 1}`}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            {cur.sets.length > 1 && (
+              <div className="console-ladder" aria-label={`${cur.name} set progress`}>
+                {cur.sets.map((rowSet, index) => {
+                  const isCurrent = index === targetCursor.setIndex;
+                  const state = rowSet.completed ? 'is-past' : '';
+                  return (
+                    <div
+                      key={rowSet.id || index}
+                      className={`console-ladder-step ${state} ${isCurrent ? 'is-current' : ''}`}
+                      aria-current={isCurrent ? 'step' : undefined}
+                    >
+                      <div className="console-ladder-bar" />
+                      <span className="console-ladder-label">
+                        {rowSet.completed ? 'Done' : `Set ${index + 1}`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="console-readout-row">
               <div className="console-readout-cell">
@@ -795,7 +833,7 @@ export default function WorkoutSession() {
       </div>
 
       {sheets}
-      {confirmCancelModal}
+      {confirmModal}
     </div>
   );
 }

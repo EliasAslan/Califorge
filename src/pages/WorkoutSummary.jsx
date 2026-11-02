@@ -169,6 +169,11 @@ export default function WorkoutSummary() {
                 </div>
               );
             })}
+            {completedExercises.length === 0 && (
+              <p className="border-b border-[var(--console-line)] py-6 text-[13px] text-[var(--console-steel)]">
+                No sets logged this session.
+              </p>
+            )}
           </div>
 
           <div className="mt-8">
