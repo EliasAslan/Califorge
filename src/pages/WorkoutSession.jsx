@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  X, Info, Check, SkipForward, Pause, Play, MoreVertical, Flag, Trash2,
+  X, Info, Check, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2,
   StickyNote,
 } from 'lucide-react';
 import { categoryColor, getExercise, MODES } from '@/lib/programData';
@@ -22,6 +22,7 @@ import VariationSwitcher from '@/components/workout/VariationSwitcher';
 import RestState from '@/components/workout/RestState';
 import WheelSheet from '@/components/workout/WheelSheet';
 import ConsoleSheet from '@/components/workout/ConsoleSheet';
+import { triggerFeedback } from '@/lib/workoutFeedback';
 
 const LAYOUTS = [
   { id: 'focus', label: 'Guided' },
@@ -178,6 +179,8 @@ export default function WorkoutSession() {
   };
 
   const switchExercise = (targetId) => {
+    if (!getExercise(targetId)) return;
+    triggerFeedback('selection');
     setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
@@ -214,6 +217,7 @@ export default function WorkoutSession() {
   };
 
   const togglePause = () => {
+    triggerFeedback('confirm');
     setSession((prev) => {
       const next = structuredClone(prev);
       if (next.paused) {
@@ -289,16 +293,22 @@ export default function WorkoutSession() {
       return;
     }
     setMissingAt(null);
+    const isFinalSet =
+      exerciseIndex === session.exercises.length - 1 &&
+      setIndex === exercise.sets.length - 1;
+    triggerFeedback(isFinalSet ? 'workoutFinish' : 'setComplete');
     advance({ completed: true, skipped: false, completedAt: Date.now() }, { exerciseIndex, setIndex });
   };
 
   const skipSetAt = (exerciseIndex, setIndex) => {
     if (paused) return;
+    triggerFeedback('selection');
     setMissingAt(null);
     advance({ completed: true, skipped: true, completedAt: Date.now() }, { exerciseIndex, setIndex });
   };
 
   const finishWorkout = () => {
+    triggerFeedback('workoutFinish');
     const finished = structuredClone(session);
     finished.finishedAt = Date.now();
     if (finished.resumeAt && !finished.paused) {
@@ -325,10 +335,31 @@ export default function WorkoutSession() {
   };
 
   const selectSetInList = (exerciseIndex, setIndex) => {
+    triggerFeedback('selection');
     setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
       next.cursor = { exerciseIndex, setIndex };
+      next.phase = 'work';
+      next.restEndsAt = null;
+      next.pendingNext = null;
+      return next;
+    });
+  };
+
+  const moveToExercise = (delta) => {
+    const currentIndex = targetCursor.exerciseIndex;
+    const nextIndex = currentIndex + delta;
+    if (nextIndex < 0 || nextIndex >= session.exercises.length) return;
+    triggerFeedback('selection');
+    const nextExercise = session.exercises[nextIndex];
+    setMissingAt(null);
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      next.cursor = {
+        exerciseIndex: nextIndex,
+        setIndex: delta > 0 ? 0 : Math.max(0, nextExercise.sets.length - 1),
+      };
       next.phase = 'work';
       next.restEndsAt = null;
       next.pendingNext = null;
@@ -427,7 +458,7 @@ export default function WorkoutSession() {
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') setShowMenu(false);
                 }}
-                className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-[var(--console-line)] bg-[var(--console-surface)] p-1 shadow-2xl shadow-black/60"
+                className="console-menu-enter absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-[var(--console-line)] bg-[var(--console-surface)] p-1 shadow-2xl shadow-black/60"
               >
                 <p className="px-3 pb-1 pt-2 text-[10px] font-semibold text-[var(--console-steel)]">
                   View
@@ -698,7 +729,7 @@ export default function WorkoutSession() {
         {renderTopBar()}
 
         <main className="min-h-0 overflow-y-auto">
-          <section className="console-hero">
+          <section key={focusKey} className="console-hero console-focus-enter">
             <div className="console-watermark" aria-hidden="true">
               <ExerciseVisual
                 visualId={cur.visualId}
@@ -786,6 +817,27 @@ export default function WorkoutSession() {
               </div>
             )}
           </section>
+
+          <section className="console-tools" aria-label="Session tools">
+            <div className="console-tools-heading">
+              <span>Session tools</span>
+              <span>{lastPerf ? `Last time · ${lastPerf}` : 'First time logging this exercise'}</span>
+            </div>
+            {rec?.text && (
+              <p className="console-tools-coach">
+                <Info size={13} aria-hidden="true" />
+                <span>{rec.text}</span>
+              </p>
+            )}
+            <div className="console-tools-actions">
+              <button type="button" onClick={() => setShowCue(true)} className="console-tool-button">
+                <Info size={15} aria-hidden="true" /> Form cue
+              </button>
+              <button type="button" onClick={() => setShowNote(true)} className="console-tool-button">
+                <StickyNote size={15} aria-hidden="true" /> Note
+              </button>
+            </div>
+          </section>
         </main>
 
         <footer className="console-action">
@@ -804,29 +856,31 @@ export default function WorkoutSession() {
           )}
 
           <div className="console-secondary-actions">
-            {!paused ? (
-              <button type="button" onClick={togglePause} className="console-text-action">
-                <Pause size={13} /> Pause
-              </button>
-            ) : (
-              <span />
-            )}
-            {!paused && !isSkill ? (
-              <button
-                type="button"
-                onClick={() => skipSetAt(targetCursor.exerciseIndex, targetCursor.setIndex)}
-                className="console-text-action"
-              >
-                <SkipForward size={13} /> Skip set
-              </button>
-            ) : (
-              <span />
-            )}
-            <button type="button" onClick={() => setShowCue(true)} className="console-text-action">
-              <Info size={13} /> Form cue
+            <button
+              type="button"
+              onClick={() => moveToExercise(-1)}
+              disabled={paused || targetCursor.exerciseIndex === 0}
+              className="console-text-action"
+              aria-label="Previous exercise"
+            >
+              <ChevronLeft size={14} /> Previous
             </button>
-            <button type="button" onClick={() => setShowNote(true)} className="console-text-action">
-              <StickyNote size={13} /> Note
+            <button
+              type="button"
+              onClick={togglePause}
+              className="console-text-action"
+            >
+              {paused ? <Play size={13} /> : <Pause size={13} />}
+              {paused ? 'Resume' : 'Pause'}
+            </button>
+            <button
+              type="button"
+              onClick={() => moveToExercise(1)}
+              disabled={paused || targetCursor.exerciseIndex === session.exercises.length - 1}
+              className="console-text-action"
+              aria-label="Next exercise"
+            >
+              Next <ChevronRight size={14} />
             </button>
           </div>
         </footer>

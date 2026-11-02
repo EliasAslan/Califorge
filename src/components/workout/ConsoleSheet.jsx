@@ -1,14 +1,32 @@
 import React from 'react';
 import { Drawer } from 'vaul';
 import { X } from 'lucide-react';
+import { haptic } from '@/lib/workoutFeedback';
 
 // Shared bottom sheet for the in-session console.
-export default function ConsoleSheet({ open, onOpenChange, title, description, children, footer }) {
+export default function ConsoleSheet({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+  footer,
+  className = '',
+  onOverlayClick,
+}) {
+  const handleOpenChange = (nextOpen) => {
+    if (nextOpen !== open) haptic('selection');
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} shouldScaleBackground={false}>
+    <Drawer.Root open={open} onOpenChange={handleOpenChange} shouldScaleBackground={false}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-50 bg-black/70" />
-        <Drawer.Content className="console-sheet">
+        <Drawer.Overlay
+          className="fixed inset-0 z-50 bg-black/70"
+          onClick={onOverlayClick}
+        />
+        <Drawer.Content className={`console-sheet ${className}`}>
           <div aria-hidden="true" className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--console-line)]" />
           <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3">
             <div className="min-w-0">

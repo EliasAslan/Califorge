@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { triggerFeedback } from '@/lib/workoutFeedback';
 import { getSchedule, getActiveProgram, getWorkout, categoryColor } from '@/lib/programData';
 import { getPhaseForWeek, getWeekMeta, isDeloadWeek, isTestWeek, buildSession, getExercisesForTimeBudget, getModeForTimeBudget } from '@/lib/trainingLogic';
 import { loadCurrentWeek, saveCurrentWeek, startNewCycle, loadActiveSession, saveActiveSession, getEnjoyment } from '@/lib/storage';
@@ -31,6 +32,7 @@ export default function Plan() {
     });
     if (!session) return;
     saveActiveSession(session);
+    triggerFeedback('workoutStart');
     navigate('/workout');
   };
 

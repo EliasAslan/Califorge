@@ -3,6 +3,7 @@ import { Check, Pause, Play } from 'lucide-react';
 import SetInputs, { missingFields, EffortRow } from '@/components/workout/SetInputs';
 import { getExercise, categoryColor } from '@/lib/programData';
 import { formatTarget } from '@/lib/trainingLogic';
+import { haptic } from '@/lib/workoutFeedback';
 
 function resultLabel(set, type) {
   if (type === 'weighted') {
@@ -45,6 +46,7 @@ export default function WorkoutListLayout({
   const handleRow = (exerciseIndex, setIndex) => {
     const key = `${exerciseIndex}-${setIndex}`;
     if (expandedKey === key) {
+      haptic('selection');
       setExpandedKey(null);
       return;
     }
@@ -160,7 +162,11 @@ export default function WorkoutListLayout({
                         </span>
                       </button>
 
-                      {isExpanded && (
+                      <div
+                        className={'console-list-editor-wrap ' + (isExpanded ? 'is-open' : '')}
+                        aria-hidden={!isExpanded}
+                        inert={!isExpanded}
+                      >
                         <div className="console-list-editor border-b border-[var(--console-line)] pb-3 pt-2">
                           <SetInputs
                             exercise={exercise}
@@ -214,7 +220,7 @@ export default function WorkoutListLayout({
                             )}
                           </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}

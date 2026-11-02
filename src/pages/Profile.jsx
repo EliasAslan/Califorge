@@ -231,6 +231,8 @@ export default function Profile() {
       <SettingsSection icon={Volume2} title="Training preferences" subtitle="Small details that make sessions feel right.">
         <div className="divide-y divide-border/70">
           <ToggleRow label="Workout notifications" description="Reminders for planned sessions" value={settings.notifications} onChange={(value) => update({ notifications: value })} />
+          <ToggleRow label="Interface sounds" description="Soft cues for selections and completed sets" value={settings.interfaceSound} onChange={(value) => update({ interfaceSound: value })} />
+          <ToggleRow label="Interface haptics" description="Subtle feedback for key actions" value={settings.interfaceHaptics} onChange={(value) => update({ interfaceHaptics: value })} icon={Vibrate} />
           <ToggleRow label="Rest timer sound" description="Play a sound when rest ends" value={settings.restSound} onChange={(value) => update({ restSound: value })} />
           <ToggleRow label="Rest timer vibration" description="Vibrate when rest ends" value={settings.restVibration} onChange={(value) => update({ restVibration: value })} icon={Vibrate} />
           <ToggleRow label="Reduce motion" description="Use fewer interface animations" value={settings.reduceMotion} onChange={(value) => update({ reduceMotion: value })} icon={Activity} />

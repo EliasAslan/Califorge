@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, TrendingUp, CalendarDays, Settings2, History as HistoryIcon } from 'lucide-react';
 import ActiveWorkoutBanner from '@/components/ActiveWorkoutBanner';
+import { triggerFeedback } from '@/lib/workoutFeedback';
 
 // Today → plan → progress → history → settings.
 const ITEMS = [
@@ -11,14 +12,6 @@ const ITEMS = [
   { to: '/history', label: 'History', icon: HistoryIcon },
   { to: '/profile', label: 'Settings', icon: Settings2 },
 ];
-
-const triggerHaptic = () => {
-  try {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(8);
-  } catch {
-    /* silent fallback */
-  }
-};
 
 export default function BottomNav() {
   const navRef = useRef(null);
@@ -88,7 +81,7 @@ export default function BottomNav() {
               key={to}
               to={to}
               end={exact}
-              onClick={triggerHaptic}
+              onClick={() => triggerFeedback('selection')}
               className={({ isActive }) =>
                 `relative flex h-[70px] flex-col items-center justify-center gap-1.5 outline-none transition-colors duration-150 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand)] ${
                   isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
