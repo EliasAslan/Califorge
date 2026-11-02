@@ -6,7 +6,6 @@ export default function Layout() {
   const { pathname } = useLocation();
   // Hide bottom nav during an active workout session for focus
   const inSession = pathname === '/workout' || pathname === '/summary' || pathname.startsWith('/workout/');
-  const isTabRoute = ['/', '/plan', '/progress', '/history', '/profile'].includes(pathname);
 
   return (
     <div className="min-h-full">
@@ -15,7 +14,6 @@ export default function Layout() {
         className={`mx-auto max-w-[620px] min-h-screen ${
           inSession ? '' : 'pb-[calc(var(--dock-height)+1.25rem)]'
         }`}
-        style={{ viewTransitionName: isTabRoute ? 'tab-content' : 'none' }}
       >
         <Outlet />
       </main>

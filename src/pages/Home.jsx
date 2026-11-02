@@ -63,7 +63,7 @@ export default function Home() {
   const todayLabel = DAY_NAMES[now.getDay()];
 
   const startWorkout = () => {
-    if (active) { withViewTransition(() => navigate('/workout'), 'workout-start'); return; }
+    if (active) { withViewTransition(() => navigate('/workout'), 'console-in'); return; }
     if (!workout || !exerciseIds.length) return;
     const session = workout.isCustom
       ? buildCustomSession(workout.name, exerciseIds, week, mode)
@@ -71,7 +71,7 @@ export default function Home() {
     if (!session) return;
     saveActiveSession(session);
     triggerFeedback('workoutStart');
-    withViewTransition(() => navigate('/workout'), 'workout-start');
+    withViewTransition(() => navigate('/workout'), 'console-in');
   };
   const discardActive = () => {
     if (!window.confirm('Discard the unfinished workout? Its progress will be lost.')) return;
@@ -100,7 +100,7 @@ export default function Home() {
       {active ? (
         <section className="apex-session-state apex-session-active">
           <div className="flex items-start gap-3"><div className="apex-state-icon"><RotateCcw size={20} /></div><div className="min-w-0 flex-1"><p className="apex-overline">SESSION IN PROGRESS</p><h2 className="mt-1 text-xl font-bold">{active.workoutName}</h2><p className="mt-1 text-sm text-muted-foreground">{completedCount(active)} sets logged · {active.paused ? 'Paused' : 'Ready to continue'}</p></div></div>
-          <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={discardActive} className="apex-button-secondary text-sm"><Trash2 size={15} /> Discard</button><button type="button" onClick={() => withViewTransition(() => navigate('/workout'), 'workout-start')} className="apex-button-primary text-sm"><Play size={16} fill="currentColor" /> Resume</button></div>
+          <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={discardActive} className="apex-button-secondary text-sm"><Trash2 size={15} /> Discard</button><button type="button" onClick={() => withViewTransition(() => navigate('/workout'), 'console-in')} className="apex-button-primary text-sm"><Play size={16} fill="currentColor" /> Resume</button></div>
         </section>
       ) : doneToday ? (
         <section className="apex-session-state apex-session-done">
@@ -109,13 +109,13 @@ export default function Home() {
           <Link to="/plan" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold">View plan <ArrowRight size={14} /></Link>
         </section>
       ) : isRestDay ? (
-        <section className="apex-rest-panel" style={{ viewTransitionName: 'home-session-card' }}>
+        <section className="apex-rest-panel">
           <div className="flex items-start gap-3"><div className="apex-rest-icon"><Moon size={22} /></div><div><p className="apex-overline">PLANNED RECOVERY</p><h2 className="mt-1 text-2xl font-bold">Take the space.</h2><p className="mt-1 text-sm text-muted-foreground">Rest is part of the plan. Nothing is waiting to be caught up.</p></div></div>
-          <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3"><p className="text-xs text-muted-foreground">Next: {workout?.name || 'Upcoming session'}</p><button type="button" onClick={() => withViewTransition(() => setTrainOnRestDay(true), 'rest-morph')} className="apex-button-secondary text-xs">Train anyway</button></div>
+          <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3"><p className="text-xs text-muted-foreground">Next: {workout?.name || 'Upcoming session'}</p><button type="button" onClick={() => setTrainOnRestDay(true)} className="apex-button-secondary text-xs">Train anyway</button></div>
         </section>
       ) : workout ? (
         <>
-          <section className="apex-workout-hero" style={{ '--session-accent': categoryAccent, viewTransitionName: 'home-session-card' }}>
+          <section className="apex-workout-hero" style={{ '--session-accent': categoryAccent }}>
             <div className="flex items-center justify-between gap-3"><p className="apex-overline">{workoutOverride || customWorkoutOverride ? 'OPTIONAL ALTERNATIVE' : trainOnRestDay ? 'OPTIONAL SESSION' : "TODAY'S PLANNED SESSION"}</p><span className="apex-scheduled-badge"><span /> {workoutOverride || customWorkoutOverride || trainOnRestDay ? 'Optional' : 'On plan'}</span></div>
             <p className="mt-5 text-xs font-semibold uppercase tracking-[0.13em]" style={{ color: 'var(--session-accent)' }}>{workout.category} <span className="mx-1 opacity-40">/</span> {recommendation?.scheduledDay || todayLabel}</p>
             <h2 className="mt-2 text-[2.4rem] font-extrabold leading-[0.98] tracking-[-0.055em]">{workout.name}</h2>

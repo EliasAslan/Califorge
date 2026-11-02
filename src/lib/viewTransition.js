@@ -17,15 +17,14 @@ const prefersReducedMotion = () => {
  * Falls back to a normal synchronous update. The `direction` is published as
  * a data attribute so CSS can distinguish entering/leaving a console route.
  */
-export function withViewTransition(update, type = 'console-in', direction = null) {
+export function withViewTransition(update, direction = 'console-in') {
   if (!canTransition() || prefersReducedMotion()) {
     update();
     return;
   }
 
   const root = document.documentElement;
-  root.dataset.transitionType = type;
-  if (direction) root.dataset.transitionDirection = direction;
+  root.dataset.viewTransition = direction;
   let updated = false;
 
   const run = () => {
@@ -37,12 +36,10 @@ export function withViewTransition(update, type = 'console-in', direction = null
   try {
     const transition = document.startViewTransition(run);
     transition.finished.finally(() => {
-      delete root.dataset.transitionType;
-      delete root.dataset.transitionDirection;
+      delete root.dataset.viewTransition;
     });
   } catch {
-    delete root.dataset.transitionType;
-    delete root.dataset.transitionDirection;
+    delete root.dataset.viewTransition;
     run();
   }
 }

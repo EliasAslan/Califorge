@@ -48,7 +48,7 @@ export default function ActiveWorkoutBanner() {
   return (
     <button
       type="button"
-      onClick={() => withViewTransition(() => navigate('/workout'), 'workout-start')}
+      onClick={() => withViewTransition(() => navigate('/workout'), 'console-in')}
       className="flex h-12 w-full items-center gap-3.5 border-b border-border px-5 text-left transition-colors hover:bg-card/60"
     >
       <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--brand)]" />
