@@ -34,6 +34,7 @@ export default function WorkoutListLayout({
   togglePause,
   renderTopBar,
   missingAt,
+  animate = false,
 }) {
   const activeEi = session.cursor.exerciseIndex;
   const activeSi = session.cursor.setIndex;
@@ -58,8 +59,9 @@ export default function WorkoutListLayout({
     <>
       {renderTopBar()}
 
-      <div className="min-h-0 overflow-y-auto">
-        <div className="flex items-baseline justify-between pb-2 pt-3">
+      <div className={`console-stage ${animate ? 'console-stage-enter' : ''}`}>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex items-baseline justify-between pb-3 pt-4">
           <span className="text-[12px] font-medium text-[var(--console-steel)]">
             {doneSets} of {totalSets} sets
           </span>
@@ -167,7 +169,7 @@ export default function WorkoutListLayout({
                         aria-hidden={!isExpanded}
                         inert={!isExpanded}
                       >
-                        <div className="console-list-editor border-b border-[var(--console-line)] pb-3 pt-2">
+                        <div className="console-list-editor border-b border-[var(--console-line)] pb-4 pt-3">
                           <SetInputs
                             exercise={exercise}
                             set={rowSet}
@@ -228,23 +230,24 @@ export default function WorkoutListLayout({
             </section>
           );
         })}
-      </div>
+        </div>
 
-      <footer className="console-action">
-        {paused ? (
-          <button type="button" onClick={togglePause} className="console-primary">
-            <Play size={17} fill="currentColor" /> Resume workout
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={togglePause}
-            className="flex h-11 w-full items-center justify-center gap-2 text-[12px] font-semibold text-[var(--console-steel)] transition-colors hover:text-[var(--console-chalk)]"
-          >
-            <Pause size={14} /> Pause workout
-          </button>
-        )}
-      </footer>
+        <footer className="console-action console-list-footer">
+          {paused ? (
+            <button type="button" onClick={togglePause} className="console-primary">
+              <Play size={17} fill="currentColor" /> Resume workout
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={togglePause}
+              className="flex h-12 w-full items-center justify-center gap-2.5 text-[12px] font-semibold text-[var(--console-steel)] transition-colors hover:text-[var(--console-chalk)]"
+            >
+              <Pause size={14} /> Pause workout
+            </button>
+          )}
+        </footer>
+      </div>
     </>
   );
 }

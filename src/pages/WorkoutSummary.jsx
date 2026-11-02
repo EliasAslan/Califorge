@@ -6,6 +6,7 @@ import { getProgressionStatus, formatClock, getPhaseCompletion, maybeAdvanceWeek
 import { loadActiveSession, clearActiveSession, loadSettings, saveCurrentWeek } from '@/lib/storage';
 import { useSessions, useCreateSession } from '@/hooks/useTrainingData';
 import useConsoleChrome from '@/hooks/useConsoleChrome';
+import { withViewTransition } from '@/lib/viewTransition';
 
 function resultLine(sets, type) {
   const reps = sets.map((set) => set.actualReps ?? 0);
@@ -99,10 +100,10 @@ export default function WorkoutSummary() {
       const allSessions = [...sessions, synthetic];
       if (session.week === 8 && getPhaseCompletion(allSessions, 8, programId)?.complete) {
         saveCurrentWeek(1, programId);
-        navigate('/phase-complete');
+        withViewTransition(() => navigate('/phase-complete'), 'console-out');
       } else {
         maybeAdvanceWeek(allSessions, programId);
-        navigate('/');
+        withViewTransition(() => navigate('/'), 'console-out');
       }
     } catch (error) {
       setErr(error.message || 'Failed to save session');
@@ -116,16 +117,16 @@ export default function WorkoutSummary() {
         <div className="console-doc-inner">
           <header>
             <p className="text-[12px] font-semibold text-[var(--console-steel)]">Session complete</p>
-            <h1 className="mt-1 text-[clamp(2rem,9vw,2.75rem)] font-extrabold leading-[0.98] tracking-[-0.045em] text-[var(--console-chalk)]">
+            <h1 className="mt-2 text-[clamp(2rem,9vw,2.75rem)] font-extrabold leading-[0.98] tracking-[-0.045em] text-[var(--console-chalk)]">
               {session.workoutName}
             </h1>
-            <p className="mt-2 text-[13px] text-[var(--console-steel)]">
+            <p className="mt-3 text-[13px] text-[var(--console-steel)]">
               {doneSets} of {totalSets} sets, {formatClock(activeMs)}
               {session.mode && session.mode !== 'full' ? `, ${MODES[session.mode]?.label}` : ''}
             </p>
           </header>
 
-          <div className="mt-8 border-t border-[var(--console-line)]">
+          <div className="mt-10 border-t border-[var(--console-line)]">
             {session.exercises.map((exercise, index) => {
               const results = exercise.sets.filter((set) => set.completed && !set.skipped);
               if (!results.length) return null;
@@ -138,11 +139,11 @@ export default function WorkoutSummary() {
               return (
                 <div
                   key={`${exercise.exerciseId}-${index}`}
-                  className="flex items-start gap-3 border-b border-[var(--console-line)] py-4"
+                  className="flex items-start gap-3.5 border-b border-[var(--console-line)] py-5"
                 >
                   <span
                     aria-hidden="true"
-                    className="mt-1 h-9 w-[3px] shrink-0"
+                    className="mt-1.5 h-10 w-[3px] shrink-0"
                     style={{ background: accent }}
                   />
                   <div className="min-w-0 flex-1">
@@ -159,10 +160,10 @@ export default function WorkoutSummary() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-[20px] font-bold leading-tight tracking-[-0.03em] tabular-nums text-[var(--console-chalk)]">
+                    <p className="mt-1.5 text-[20px] font-bold leading-tight tracking-[-0.03em] tabular-nums text-[var(--console-chalk)]">
                       {resultLine(results, exercise.type)}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-[var(--console-steel)]">
+                    <p className="mt-1 text-[11px] text-[var(--console-steel)]">
                       {results.length} of {exercise.sets.length} sets
                     </p>
                   </div>
@@ -170,13 +171,13 @@ export default function WorkoutSummary() {
               );
             })}
             {completedExercises.length === 0 && (
-              <p className="border-b border-[var(--console-line)] py-6 text-[13px] text-[var(--console-steel)]">
+              <p className="border-b border-[var(--console-line)] py-8 text-[13px] text-[var(--console-steel)]">
                 No sets logged this session.
               </p>
             )}
           </div>
 
-          <div className="mt-8">
+          <div className="mt-10">
             <label
               htmlFor="session-note"
               className="text-[11px] font-semibold text-[var(--console-steel)]"
@@ -189,7 +190,7 @@ export default function WorkoutSummary() {
               onChange={(event) => setNote(event.target.value)}
               placeholder="How did it feel? Anything to remember for next time…"
               rows={3}
-              className="mt-2 w-full resize-none border border-[var(--console-line)] bg-transparent p-3 text-[14px] leading-relaxed text-[var(--console-chalk)] outline-none placeholder:text-[var(--console-steel)] focus:border-[var(--console-chalk)]"
+              className="mt-2.5 w-full resize-none border border-[var(--console-line)] bg-transparent p-3.5 text-[14px] leading-relaxed text-[var(--console-chalk)] outline-none placeholder:text-[var(--console-steel)] focus:border-[var(--console-chalk)]"
             />
           </div>
 
@@ -199,7 +200,7 @@ export default function WorkoutSummary() {
             </p>
           )}
 
-          <div className="mt-6">
+          <div className="mt-8">
             <button
               type="button"
               onClick={handleSave}

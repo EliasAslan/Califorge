@@ -11,7 +11,7 @@ export default function Layout() {
     <div className="min-h-full">
       <main
         key={pathname}
-        className={`mx-auto max-w-[620px] min-h-screen animate-fade-in ${
+        className={`mx-auto max-w-[620px] min-h-screen ${
           inSession ? '' : 'pb-[calc(var(--dock-height)+1.25rem)]'
         }`}
       >

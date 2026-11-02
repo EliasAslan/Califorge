@@ -27,8 +27,8 @@ export default function ConsoleSheet({
           onClick={onOverlayClick}
         />
         <Drawer.Content className={`console-sheet ${className}`}>
-          <div aria-hidden="true" className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--console-line)]" />
-          <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3">
+          <div aria-hidden="true" className="mx-auto mt-3.5 h-1 w-10 rounded-full bg-[var(--console-line)]" />
+          <div className="flex items-center justify-between gap-3 px-6 pb-3 pt-4">
             <div className="min-w-0">
               <Drawer.Title className="truncate text-[15px] font-semibold text-[var(--console-chalk)]">
                 {title}
@@ -47,11 +47,11 @@ export default function ConsoleSheet({
               </button>
             </Drawer.Close>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-5">{children}</div>
           {footer && (
             <div
-              className="border-t border-[var(--console-line)] px-5 pt-3"
-              style={{ paddingBottom: 'max(0.9rem, env(safe-area-inset-bottom))' }}
+              className="border-t border-[var(--console-line)] px-6 pt-4"
+              style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
             >
               {footer}
             </div>

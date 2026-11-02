@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { loadActiveSession } from '@/lib/storage';
 import { formatClock } from '@/lib/trainingLogic';
+import { withViewTransition } from '@/lib/viewTransition';
 
 export default function ActiveWorkoutBanner() {
   const navigate = useNavigate();
@@ -47,8 +48,8 @@ export default function ActiveWorkoutBanner() {
   return (
     <button
       type="button"
-      onClick={() => navigate('/workout')}
-      className="flex h-11 w-full items-center gap-3 border-b border-border px-4 text-left transition-colors hover:bg-card/60"
+      onClick={() => withViewTransition(() => navigate('/workout'), 'console-in')}
+      className="flex h-12 w-full items-center gap-3.5 border-b border-border px-5 text-left transition-colors hover:bg-card/60"
     >
       <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--brand)]" />
       <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">

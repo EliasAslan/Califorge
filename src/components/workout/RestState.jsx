@@ -45,7 +45,7 @@ export default function RestState({
   const nextDefinition = nextExercise ? getExercise(nextExercise.exerciseId) || nextExercise : null;
 
   return (
-    <div className="console-rest-enter flex h-full flex-col justify-between py-4">
+    <div className="flex min-h-0 flex-1 flex-col justify-between py-4">
       <div className="flex flex-1 flex-col justify-center">
         <p className="text-[12px] font-semibold text-[var(--console-steel)]">Rest</p>
         <div className="console-rest-time mt-2" aria-live="off">{display}</div>

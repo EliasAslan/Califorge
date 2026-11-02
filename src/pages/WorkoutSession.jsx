@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Info, Check, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2,
@@ -23,6 +23,7 @@ import RestState from '@/components/workout/RestState';
 import WheelSheet from '@/components/workout/WheelSheet';
 import ConsoleSheet from '@/components/workout/ConsoleSheet';
 import { triggerFeedback } from '@/lib/workoutFeedback';
+import { withViewTransition } from '@/lib/viewTransition';
 
 const LAYOUTS = [
   { id: 'focus', label: 'Guided' },
@@ -52,8 +53,24 @@ export default function WorkoutSession() {
   const [showCue, setShowCue] = useState(false);
   const [showNote, setShowNote] = useState(false);
   const [, setIncrementTick] = useState(0);
+  const [stageAnimate, setStageAnimate] = useState(false);
+  const stageMountedRef = useRef(false);
+  const isRestPhase = session?.phase === 'rest';
   const { data: sessions = [] } = useSessions();
   useConsoleChrome();
+
+  // Animate the console stage when the workout state or layout changes, but
+  // not on the initial mount: the route takeover already handles that.
+  useLayoutEffect(() => {
+    if (!loaded) return undefined;
+    if (!stageMountedRef.current) {
+      stageMountedRef.current = true;
+      return undefined;
+    }
+    setStageAnimate(true);
+    const timer = setTimeout(() => setStageAnimate(false), 240);
+    return () => clearTimeout(timer);
+  }, [isRestPhase, layout, loaded]);
 
   useEffect(() => {
     const stored = loadActiveSession();
@@ -124,7 +141,7 @@ export default function WorkoutSession() {
     );
   }
 
-  const isRest = session.phase === 'rest';
+  const isRest = isRestPhase;
   const targetCursor = isRest && session.pendingNext ? session.pendingNext : session.cursor;
   const cur = session.exercises[targetCursor.exerciseIndex];
   const set = cur.sets[targetCursor.setIndex];
@@ -257,7 +274,7 @@ export default function WorkoutSession() {
       }
       saveActiveSession(next);
       setSession(next);
-      navigate('/summary');
+      withViewTransition(() => navigate('/summary'), 'console-in');
       return;
     }
 
@@ -317,7 +334,7 @@ export default function WorkoutSession() {
     }
     saveActiveSession(finished);
     setSession(finished);
-    navigate('/summary');
+    withViewTransition(() => navigate('/summary'), 'console-in');
   };
 
   const exit = () => {
@@ -325,13 +342,13 @@ export default function WorkoutSession() {
       setConfirmMode('leave');
       return;
     }
-    navigate('/');
+    withViewTransition(() => navigate('/'), 'console-out');
   };
 
   const cancelWorkout = () => {
     clearActiveSession();
     setConfirmMode(null);
-    navigate('/');
+    withViewTransition(() => navigate('/'), 'console-out');
   };
 
   const selectSetInList = (exerciseIndex, setIndex) => {
@@ -558,7 +575,7 @@ export default function WorkoutSession() {
               type="button"
               onClick={() => {
                 setConfirmMode(null);
-                navigate('/');
+                withViewTransition(() => navigate('/'), 'console-out');
               }}
               className="h-11 rounded-xl bg-[var(--console-chalk)] text-[13px] font-semibold text-[var(--console-bg)]"
             >
@@ -671,29 +688,8 @@ export default function WorkoutSession() {
     </>
   );
 
-  // ── REST: the same screen, one state at a time ──
-  if (isRest) {
-    const nextSetIndex = targetCursor.setIndex;
-    const justFinished = session.exercises[session.cursor.exerciseIndex];
-    return (
-      <div className="console-page">
-        <div className="console-shell" data-workout-layout="focus" style={{ '--console-signal': accent }}>
-          {renderTopBar()}
-          <RestState
-            restEndsAt={session.restEndsAt || Date.now()}
-            totalDurationSec={justFinished?.restSec || 90}
-            nextExercise={cur}
-            nextSetIndex={nextSetIndex}
-            onDone={finishRest}
-            onAdjust={adjustRest}
-            accent={accent}
-          />
-        </div>
-        {sheets}
-        {confirmModal}
-      </div>
-    );
-  }
+  const nextSetIndex = targetCursor.setIndex;
+  const justFinished = session.exercises[session.cursor.exerciseIndex];
 
   // ── LIST: editable overview ──
   if (layout === 'list') {
@@ -714,6 +710,7 @@ export default function WorkoutSession() {
             togglePause={togglePause}
             renderTopBar={renderTopBar}
             missingAt={missingAt}
+            animate={stageAnimate}
           />
         </div>
         {sheets}
@@ -722,14 +719,35 @@ export default function WorkoutSession() {
     );
   }
 
-  // ── FOCUS: the console ──
+  // ── FOCUS / REST: one console, one state at a time ──
   return (
     <div className="console-page">
-      <div className="console-shell" data-workout-layout="focus" style={{ '--console-signal': accent }}>
+      <div
+        className="console-shell"
+        data-workout-layout="focus"
+        data-workout-state={isRest ? 'rest' : 'focus'}
+        style={{ '--console-signal': accent }}
+      >
         {renderTopBar()}
 
-        <main className="min-h-0 overflow-y-auto">
-          <section key={focusKey} className="console-hero console-focus-enter">
+        <div
+          key={isRest ? 'rest' : 'focus'}
+          className={`console-stage ${stageAnimate ? 'console-stage-enter' : ''}`}
+        >
+          {isRest ? (
+            <RestState
+              restEndsAt={session.restEndsAt || Date.now()}
+              totalDurationSec={justFinished?.restSec || 90}
+              nextExercise={cur}
+              nextSetIndex={nextSetIndex}
+              onDone={finishRest}
+              onAdjust={adjustRest}
+              accent={accent}
+            />
+          ) : (
+            <>
+              <main className="min-h-0 flex-1 overflow-y-auto">
+                <section className="console-hero">
             <div className="console-watermark" aria-hidden="true">
               <ExerciseVisual
                 visualId={cur.visualId}
@@ -821,7 +839,7 @@ export default function WorkoutSession() {
           <section className="console-tools" aria-label="Session tools">
             <div className="console-tools-heading">
               <span>Session tools</span>
-              <span>{lastPerf ? `Last time · ${lastPerf}` : 'First time logging this exercise'}</span>
+              <span>{lastPerf ? `Last time: ${lastPerf}` : 'First time logging this exercise'}</span>
             </div>
             {rec?.text && (
               <p className="console-tools-coach">
@@ -883,7 +901,10 @@ export default function WorkoutSession() {
               Next <ChevronRight size={14} />
             </button>
           </div>
-        </footer>
+              </footer>
+            </>
+          )}
+        </div>
       </div>
 
       {sheets}

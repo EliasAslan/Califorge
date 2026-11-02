@@ -11,8 +11,9 @@ export default function useConsoleChrome() {
       colorScheme: body.style.colorScheme,
     };
 
+    body.style.transition = 'background-color 220ms ease';
     body.style.backgroundImage = 'none';
-    body.style.backgroundColor = '#0B0C0D';
+    body.style.backgroundColor = '#141413';
     body.style.colorScheme = 'dark';
 
     return () => {

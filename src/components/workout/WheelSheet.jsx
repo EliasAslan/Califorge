@@ -227,7 +227,7 @@ export default function WheelSheet({
         </div>
       }
     >
-      <div className="flex items-end justify-between gap-3 pb-1">
+      <div className="flex items-end justify-between gap-3 pb-2">
         {typing ? (
           <input
             autoFocus
@@ -264,7 +264,7 @@ export default function WheelSheet({
       </div>
 
       {usablePresets.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pb-3 pt-2">
+        <div className="flex flex-wrap gap-2 pb-4 pt-2.5">
           {usablePresets.map((preset) => (
             <button
               key={`${preset.label}-${preset.value}`}
@@ -308,7 +308,7 @@ export default function WheelSheet({
       </div>
 
       {stepOptions.length > 0 && onStepChange && (
-        <div className="flex items-center gap-2 border-t border-[var(--console-line)] pt-3">
+        <div className="flex items-center gap-2.5 border-t border-[var(--console-line)] pt-4">
           <span className="mr-auto text-[11px] font-semibold text-[var(--console-steel)]">
             Step{unit ? ` (${unit})` : ''}
           </span>

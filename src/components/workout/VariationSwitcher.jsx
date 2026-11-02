@@ -35,7 +35,7 @@ export default function VariationSwitcher({ originalId, currentId, onSwitch }) {
       <button
         type="button"
         onClick={() => onSwitch(ex.id)}
-        className="flex min-w-0 flex-1 items-center justify-center gap-1.5 border border-[var(--console-line)] px-3 py-2.5 text-[11px] font-semibold text-[var(--console-steel)] transition-colors hover:border-[#3A3E43] hover:text-[var(--console-chalk)] active:scale-[0.98]"
+        className="flex min-w-0 flex-1 items-center justify-center gap-1.5 border border-[var(--console-line)] px-3 py-2.5 text-[11px] font-semibold text-[var(--console-steel)] transition-colors hover:border-[var(--console-line-strong)] hover:text-[var(--console-chalk)] active:scale-[0.98]"
       >
         {side === 'left' && <Icon size={12} className="shrink-0" />}
         <span className="truncate">
