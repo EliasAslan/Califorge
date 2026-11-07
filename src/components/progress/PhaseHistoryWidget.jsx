@@ -8,11 +8,11 @@ export default function PhaseHistoryWidget({ sessions, currentWeek, programId, o
   const peak = max > 0 ? weeks.find((w) => w.sets === max) : null;
 
   return (
-    <div className={`rounded-2xl border border-border bg-card/50 p-5 flex flex-col ${className || ''}`}>
-      <div className="flex items-center justify-between mb-4">
+    <div className={`rounded-2xl border border-border bg-card/50 p-3.5 sm:p-5 flex flex-col ${className || ''}`}>
+      <div className="flex items-center justify-between mb-2.5">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Phase History</p>
-          <p className="text-sm font-semibold mt-0.5">Sets per week</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Cycle volume</p>
+          <p className="text-sm font-semibold mt-0.5">Sets logged each week</p>
         </div>
         {peak && (
           <span className="text-xs text-muted-foreground">
@@ -20,10 +20,12 @@ export default function PhaseHistoryWidget({ sessions, currentWeek, programId, o
           </span>
         )}
       </div>
-      <div className="flex-1 flex items-end justify-between gap-2 min-h-[120px]">
+      <div className="flex-1 flex items-end justify-between gap-2 min-h-[88px]">
         {weeks.map((w) => {
           const h = Math.round((w.sets / maxSets) * 100);
           const empty = !w.sets;
+          const widths = [58, 100, 42, 76, 54, 88, 48, 68];
+          const radii = ['3px', '999px', '2px', '7px', '999px', '2px', '6px', '999px'];
           return (
             <button
               key={w.week}
@@ -34,9 +36,11 @@ export default function PhaseHistoryWidget({ sessions, currentWeek, programId, o
                 {w.sets || ''}
               </span>
               <div
-                className="w-full rounded-md transition-all group-active:scale-95"
+                className="mx-auto transition-all group-active:scale-95"
                 style={{
+                  width: `${widths[w.week - 1]}%`,
                   height: `${empty ? 8 : Math.max(12, h)}%`,
+                  borderRadius: radii[w.week - 1],
                   background: w.isCurrent
                     ? 'hsl(var(--foreground))'
                     : w.sets
