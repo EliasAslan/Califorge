@@ -630,9 +630,15 @@
   border-radius: 2px;
 }
 .console-ladder-bar {
+  display: block;
+  width: 100%;
   height: 3px;
+  border-radius: 999px;
   background: var(--console-line);
-  transition: background 160ms ease;
+  transition: background 160ms ease, filter 160ms ease, height 160ms ease;
+}
+.console-ladder-step.is-current .console-ladder-bar {
+  height: 4px;
 }
 .console-ladder-step.is-past .console-ladder-bar {
   background: color-mix(in srgb, var(--console-signal, var(--brand)) 45%, var(--console-line));
