@@ -105,7 +105,7 @@ export default function Profile() {
       if (!backup || typeof backup !== 'object' || !Array.isArray(backup.sessions) || !Array.isArray(backup.customWorkouts)) {
         throw new Error('This file is not a valid APEX backup.');
       }
-      const confirmed = window.confirm(`Replace current local data with this backup?\n\n${backup.sessions.length} workout sessions and ${backup.customWorkouts.length} custom workouts will be imported. This cannot be undone.`);
+      const confirmed = window.confirm(`Replace current local data with this backup?\n\n${backup.sessions.length} workout sessions, ${backup.customWorkouts.length} custom workouts and ${(backup.bodyweightEntries || []).length} weigh-ins will be imported. This cannot be undone.`);
       if (!confirmed) return;
       await replaceAllTrainingData(backup);
       clearLocalData();
