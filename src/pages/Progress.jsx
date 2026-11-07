@@ -47,7 +47,7 @@ export default function Progress() {
           currentWeek={currentWeek}
           programId={programId}
           onWeekClick={(week) => navigate(`/progress/phase?week=${week}`)}
-          className="col-span-2"
+          className="col-span-6"
         />
         {isHypertrophy && (
           <MuscleBalanceWidget
@@ -61,18 +61,18 @@ export default function Progress() {
         <SkillsWidget
           sessions={sessions}
           onClick={() => navigate('/progress/skills')}
-          className="col-span-1 sm:col-span-3"
+          className={isHypertrophy ? "col-span-3" : "col-span-2"}
         />
         <PRsWidget
           sessions={sessions}
           onClick={() => navigate('/progress/records')}
-          className="col-span-1 sm:col-span-3"
+          className="col-span-2"
         />
         <WeightWidget
           entries={bodyweightEntries}
           unit={units}
           onClick={() => navigate('/progress/weight')}
-          className="col-span-1 sm:col-span-3"
+          className="col-span-2"
         />
       </div>
     </main>
