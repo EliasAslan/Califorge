@@ -8,7 +8,7 @@ export default function PhaseHistoryWidget({ sessions, currentWeek, programId, o
   const peak = max > 0 ? weeks.find((w) => w.sets === max) : null;
 
   return (
-    <div className={`rounded-2xl border border-border bg-card/50 p-3.5 sm:p-5 flex flex-col ${className || ''}`}>
+    <div className={`h-[184px] min-h-[184px] rounded-2xl border border-border bg-card/50 p-3.5 sm:p-5 flex flex-col ${className || ''}`}>
       <div className="flex items-center justify-between mb-2.5">
         <div>
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Cycle volume</p>
