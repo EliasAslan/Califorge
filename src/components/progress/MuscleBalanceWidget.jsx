@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { CATEGORIES, getExercise, getWeeks } from '@/lib/programData';
-import { getProgramSessions } from '@/lib/trainingLogic';
+import { getCurrentCycleSessions } from '@/lib/trainingLogic';
 
 // Hypertrophy-specific: weekly set volume split by muscle group across the
 // 8-week cycle. Replaces the skill tree on the Progress dashboard when the
@@ -10,7 +10,7 @@ const GROUPS = ['push', 'pull', 'legs', 'core'];
 
 export default function MuscleBalanceWidget({ sessions, currentWeek, programId, onClick, className }) {
   const weeks = getWeeks(programId);
-  const programSessions = programId ? getProgramSessions(sessions, programId) : sessions;
+  const programSessions = getCurrentCycleSessions(sessions, programId);
   const totals = weeks.map((w) => {
     const ws = programSessions.filter((s) => s.week === w.week);
     const byCat = { push: 0, pull: 0, legs: 0, core: 0 };
