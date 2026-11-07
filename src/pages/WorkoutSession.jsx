@@ -90,6 +90,34 @@ export default function WorkoutSession() {
     if (session) saveActiveSession(session);
   }, [session]);
 
+  // Keep the display awake only while this workout screen is mounted.
+  // Reacquire after Android Chrome releases the lock when the tab is hidden.
+  useEffect(() => {
+    if (!loaded || !('wakeLock' in navigator)) return undefined;
+    let sentinel = null;
+    let cancelled = false;
+    const requestLock = async () => {
+      if (cancelled || document.visibilityState !== 'visible' || sentinel) return;
+      try {
+        sentinel = await navigator.wakeLock.request('screen');
+        sentinel.addEventListener('release', () => { sentinel = null; });
+      } catch {
+        // Unsupported, denied, or battery-saver restricted: keep normal timeout behavior.
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') requestLock();
+    };
+    requestLock();
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (sentinel) sentinel.release().catch(() => {});
+      sentinel = null;
+    };
+  }, [loaded]);
+
   useEffect(() => {
     saveWorkoutLayout(layout);
   }, [layout]);
