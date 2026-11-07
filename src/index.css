@@ -1123,3 +1123,37 @@ html[data-reduce-motion='true'] *::after {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Routine checklist: the checked cross sits over the circle like a quick pen mark. */
+.routine-check {
+  position: relative;
+  display: inline-block;
+  border-color: hsl(var(--muted-foreground) / 0.42);
+  background: hsl(var(--muted) / 0.28);
+  transition: background-color 150ms ease, border-color 150ms ease, transform 180ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.routine-check::before,
+.routine-check::after {
+  position: absolute;
+  top: 7px;
+  left: -3px;
+  width: 22px;
+  height: 2px;
+  border-radius: 999px;
+  background: hsl(var(--muted-foreground) / 0.82);
+  content: "";
+  opacity: 0;
+  transition: opacity 130ms ease, transform 180ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.routine-check::before { transform: rotate(48deg) scaleX(0.35); }
+.routine-check::after { left: -2px; width: 20px; transform: rotate(-53deg) scaleX(0.35) skewX(-12deg); }
+.routine-check.is-checked {
+  border-color: hsl(var(--muted-foreground) / 0.56);
+  background: hsl(var(--muted) / 0.48);
+  transform: scale(0.96);
+}
+.routine-check.is-checked::before,
+.routine-check.is-checked::after { opacity: 1; }
+.routine-check.is-checked::before { transform: rotate(48deg) scaleX(1); }
+.routine-check.is-checked::after { transform: rotate(-53deg) scaleX(1) skewX(-12deg); }
