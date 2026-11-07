@@ -4,8 +4,9 @@ import { Check } from 'lucide-react';
 import { categoryColor, MODES } from '@/lib/programData';
 import { getProgressionStatus, formatClock, getPhaseCompletion, maybeAdvanceWeek } from '@/lib/trainingLogic';
 import { loadActiveSession, clearActiveSession, loadSettings, saveCurrentWeek } from '@/lib/storage';
-import { useSessions, useCreateSession } from '@/hooks/useTrainingData';
+import { useSessions, useCreateSession, useBodyweightEntries, useCreateBodyweightEntry } from '@/hooks/useTrainingData';
 import useConsoleChrome from '@/hooks/useConsoleChrome';
+import WeightWheelSheet from '@/components/workout/WeightWheelSheet';
 import { withViewTransition } from '@/lib/viewTransition';
 
 function resultLine(sets, type) {
@@ -35,6 +36,8 @@ export default function WorkoutSummary() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [note, setNote] = useState('');
+  const [weightSheetOpen, setWeightSheetOpen] = useState(false);
+  const [weightLogged, setWeightLogged] = useState(false);
   const { data: sessions = [] } = useSessions();
   const { mutateAsync: createSession } = useCreateSession();
   useConsoleChrome();
@@ -68,6 +71,18 @@ export default function WorkoutSummary() {
     session.activeMs != null
       ? session.activeMs
       : (session.finishedAt || Date.now()) - (session.startedAt || Date.now());
+  const settings = loadSettings();
+  const weightUnit = settings.units || 'kg';
+  const latestWeight = bodyweightEntries[bodyweightEntries.length - 1];
+  const fallbackWeight = Number(settings.bodyweight) || (weightUnit === 'lb' ? 154 : 70);
+  const currentWeight = latestWeight
+    ? (weightUnit === 'lb' ? latestWeight.weightKg * 2.2046226218 : latestWeight.weightKg)
+    : fallbackWeight;
+  const saveBodyweight = async (value) => {
+    const weightKg = weightUnit === 'lb' ? value / 2.2046226218 : value;
+    await createBodyweightEntry({ weightKg, date: new Date().toISOString(), source: 'workout' });
+    setWeightLogged(true);
+  };
 
   const handleSave = async () => {
     if (saved) {
@@ -125,6 +140,18 @@ export default function WorkoutSummary() {
               {session.mode && session.mode !== 'full' ? `, ${MODES[session.mode]?.label}` : ''}
             </p>
           </header>
+
+          <div className="mt-5 border-y border-[var(--console-line)] py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-[var(--console-steel)]">Bodyweight</p>
+                <p className="mt-0.5 text-[10px] text-[var(--console-steel)]">{weightLogged ? 'Logged for today' : 'Optional · helps track changes over time'}</p>
+              </div>
+              <button type="button" onClick={() => setWeightSheetOpen(true)} className="shrink-0 rounded-lg border border-[var(--console-line)] px-3 py-2 text-[11px] font-semibold text-[var(--console-chalk)]">
+                {weightLogged ? 'Update' : '＋ Log weight'}
+              </button>
+            </div>
+          </div>
 
           <div className="mt-10 border-t border-[var(--console-line)]">
             {session.exercises.map((exercise, index) => {
@@ -213,6 +240,13 @@ export default function WorkoutSummary() {
           </div>
         </div>
       </div>
+      <WeightWheelSheet
+        open={weightSheetOpen}
+        onOpenChange={setWeightSheetOpen}
+        value={currentWeight}
+        unit={weightUnit}
+        onCommit={saveBodyweight}
+      />
     </div>
   );
 }
