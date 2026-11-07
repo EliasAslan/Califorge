@@ -165,9 +165,10 @@ async function replaceAllStores({ sessions = [], customWorkouts = [], bodyweight
     // collection is prepared and validated before either key is overwritten.
     fallbackWrite(STORES.sessions, prepared[STORES.sessions]);
     fallbackWrite(STORES.customWorkouts, prepared[STORES.customWorkouts]);
+    fallbackWrite(STORES.bodyweightEntries, prepared[STORES.bodyweightEntries]);
     return;
   }
-  const tx = db.transaction([STORES.sessions, STORES.customWorkouts], 'readwrite');
+  const tx = db.transaction([STORES.sessions, STORES.customWorkouts, STORES.bodyweightEntries], 'readwrite');
   Object.values(STORES).forEach((storeName) => {
     const store = tx.objectStore(storeName);
     store.clear();
