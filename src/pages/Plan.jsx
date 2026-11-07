@@ -23,7 +23,7 @@ export default function Plan() {
   const startWorkout = (workoutId) => {
     if (active) { navigate('/workout'); return; }
     const workout = getWorkout(workoutId);
-    const context = { sessions, enjoyment: getEnjoyment() };
+    const context = { sessions, enjoyment: getEnjoyment(), programId: getActiveProgramId() };
     const exerciseIds = getExercisesForTimeBudget(workout, week, availableMinutes, context);
     const session = buildSession(workoutId, week, getModeForTimeBudget(availableMinutes), {
       ...context,
