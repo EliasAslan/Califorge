@@ -5,7 +5,7 @@ import { getWeeks, getActiveProgramId } from '@/lib/programData';
 import { useSessions } from '@/hooks/useTrainingData';
 import { loadCurrentWeek } from '@/lib/storage';
 import {
-  getCycleWeeks, getPhaseForWeek, getWeekSessions, formatDuration, getProgramSessions,
+  getCycleWeeks, getPhaseForWeek, getWeekSessions, formatDuration, getCurrentCycleSessions,
 } from '@/lib/trainingLogic';
 
 export default function PhaseDetail() {
@@ -13,7 +13,7 @@ export default function PhaseDetail() {
   const { data: sessions = [] } = useSessions();
   const programId = getActiveProgramId();
   const currentWeek = loadCurrentWeek(programId);
-  const programSessions = getProgramSessions(sessions, programId);
+  const programSessions = getCurrentCycleSessions(sessions, programId);
   const weeks = getCycleWeeks(sessions, currentWeek, programId);
   const maxSets = Math.max(1, ...weeks.map((w) => w.sets));
   const phase = getPhaseForWeek(currentWeek, programId);
