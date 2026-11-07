@@ -760,10 +760,11 @@ export default function WorkoutSession() {
             type="button"
             onClick={openExercisePicker}
             disabled={!cur.sets.some((s) => !s.completed)}
-            className="flex w-full items-center justify-between rounded-xl border border-[var(--console-line)] px-3.5 py-3 text-left text-[12px] font-semibold text-[var(--console-chalk)] transition-colors hover:bg-[var(--console-surface-2)] disabled:opacity-40"
+            className="group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11px] font-semibold text-[var(--console-steel)] transition-colors hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)] disabled:opacity-35"
           >
-            <span>Choose a different exercise</span>
-            <ArrowLeftRight size={14} />
+            <ArrowLeftRight size={13} className="shrink-0 opacity-75 transition-transform group-hover:rotate-180" />
+            <span className="flex-1">Choose a different exercise</span>
+            <span className="text-[10px] font-medium opacity-60">Replace</span>
           </button>
         </div>
       </ConsoleSheet>
