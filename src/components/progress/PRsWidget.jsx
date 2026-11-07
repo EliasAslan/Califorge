@@ -11,7 +11,7 @@ export default function PRsWidget({ sessions, onClick, className }) {
       onClick={onClick}
       role="button"
       tabIndex={0}
-      className={`min-h-[126px] rounded-2xl border border-border bg-card/50 p-2.5 sm:p-4 active:scale-[0.99] transition-transform cursor-pointer flex flex-col items-start justify-between gap-2 ${className || ''}`}
+      className={`h-[184px] min-h-[184px] rounded-2xl border border-border bg-card/50 p-2.5 sm:p-4 active:scale-[0.99] transition-transform cursor-pointer flex flex-col items-start justify-between gap-2 ${className || ''}`}
     >
       <div className="flex w-full items-center justify-between gap-1">
         <div className="flex items-center gap-2">
