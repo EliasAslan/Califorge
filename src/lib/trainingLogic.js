@@ -597,14 +597,14 @@ export const getWeekSummary = (sessions, week) => {
 };
 
 export const getCycleWeeks = (sessions, currentWeek, programId) => {
-  const programSessions = programId ? getProgramSessions(sessions, programId) : sessions;
-  return getWeeks(programId).map((w) => ({ week: w.week, phase: w.phase, isCurrent: w.week === currentWeek, ...getWeekSummary(programSessions, w.week) }));
+  const cycleSessions = getCurrentCycleSessions(sessions, programId);
+  return getWeeks(programId).map((w) => ({ week: w.week, phase: w.phase, isCurrent: w.week === currentWeek, ...getWeekSummary(cycleSessions, w.week) }));
 };
 
 export const plannedPerWeek = (programId) => getSchedule(programId).filter((d) => !d.rest).length;
 
 export const getCycleConsistency = (sessions, currentWeek, programId) => {
-  const programSessions = programId ? getProgramSessions(sessions, programId) : sessions;
+  const programSessions = getCurrentCycleSessions(sessions, programId);
   const ppw = plannedPerWeek(programId);
   const byWeek = [];
   let completed = 0, planned = 0;
@@ -656,14 +656,32 @@ export const getRequiredWorkoutsPerWeek = (programId) => {
 };
 
 export const getCurrentCycleSessions = (sessions, programId) => {
+  const programSessions = getProgramSessions(sessions, programId)
+    .slice()
+    .sort((a, b) => new Date(a.date || a.finishedAt || a.startedAt || 0) - new Date(b.date || b.finishedAt || b.startedAt || 0));
   const cycleStartAt = loadCycleStartAt(programId);
-  if (!cycleStartAt) return getProgramSessions(sessions, programId);
-  const cycleStartMs = new Date(cycleStartAt).getTime();
-  if (!Number.isFinite(cycleStartMs)) return getProgramSessions(sessions, programId);
-  return getProgramSessions(sessions, programId).filter((session) => {
-    const sessionDate = new Date(session.date || session.finishedAt || session.startedAt || 0).getTime();
-    return Number.isFinite(sessionDate) && sessionDate >= cycleStartMs;
-  });
+  if (cycleStartAt) {
+    const cycleStartMs = new Date(cycleStartAt).getTime();
+    if (Number.isFinite(cycleStartMs)) {
+      return programSessions.filter((session) => {
+        const sessionDate = new Date(session.date || session.finishedAt || session.startedAt || 0).getTime();
+        return Number.isFinite(sessionDate) && sessionDate >= cycleStartMs;
+      });
+    }
+  }
+
+  // Older installs may have workout history from a previous cycle but no
+  // saved cycle-start timestamp. Detect the latest week-number reset (e.g.
+  // Week 8 -> Week 1) so old cycle data cannot leak into the new overview.
+  let latestCycleStart = 0;
+  for (let index = 1; index < programSessions.length; index += 1) {
+    const previousWeek = Number(programSessions[index - 1].week);
+    const nextWeek = Number(programSessions[index].week);
+    if (Number.isFinite(previousWeek) && Number.isFinite(nextWeek) && nextWeek < previousWeek) {
+      latestCycleStart = index;
+    }
+  }
+  return programSessions.slice(latestCycleStart);
 };
 
 const getCompletedWorkoutIdsForWeek = (sessions, week, programId) => {
