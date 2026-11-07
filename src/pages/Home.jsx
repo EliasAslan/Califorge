@@ -199,25 +199,36 @@ function RoutineCard({ title, subtitle, items }) {
   const [completed, setCompleted] = React.useState([]);
   if (!items?.length) return null;
   return (
-    <details className="group mt-3 overflow-hidden rounded-2xl border border-border/70 bg-card/50">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
+    <details className="group mt-3 overflow-hidden rounded-xl border border-border/60 bg-card/25">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 [&::-webkit-details-marker]:hidden">
         <div className="min-w-0">
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+          <p className="text-[13px] font-semibold">{title}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-          <span>{completed.length}/{items.length}</span>
-          <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
+        <div className="flex shrink-0 items-center gap-2.5">
+          <span className="rounded-full bg-muted/70 px-2 py-1 text-[10px] font-semibold tabular-nums text-muted-foreground">{completed.length}/{items.length}</span>
+          <ChevronDown size={15} className="text-muted-foreground transition-transform group-open:rotate-180" />
         </div>
       </summary>
-      <div className="border-t border-border/70 px-4 py-2">
+      <div className="border-t border-border/50 px-3.5 py-1.5">
         {items.map((item, index) => {
           const checked = completed.includes(index);
           return (
-            <label key={item.name} className="flex min-h-11 cursor-pointer items-center gap-3 border-b border-border/50 py-2 last:border-0">
-              <input type="checkbox" checked={checked} onChange={() => setCompleted((current) => checked ? current.filter((value) => value !== index) : [...current, index])} className="h-4 w-4 accent-current" />
-              <span className={checked ? 'flex-1 text-sm text-muted-foreground line-through' : 'flex-1 text-sm'}>{item.name}</span>
-              <span className="text-xs text-muted-foreground">{item.detail}</span>
+            <label key={item.name} className="group/item flex min-h-10 cursor-pointer items-center gap-2.5 border-b border-border/35 py-2 last:border-0">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => setCompleted((current) => checked ? current.filter((value) => value !== index) : [...current, index])}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className={`flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-full border text-[14px] font-medium leading-none transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background ${checked ? 'border-muted-foreground/50 bg-muted/70 text-muted-foreground' : 'border-muted-foreground/35 bg-muted/30 text-transparent group-hover/item:border-muted-foreground/65'}`}
+              >
+                ×
+              </span>
+              <span className={checked ? 'min-w-0 flex-1 text-[12px] text-muted-foreground/65' : 'min-w-0 flex-1 text-[12px] text-foreground/90'}>{item.name}</span>
+              <span className={checked ? 'shrink-0 text-[10px] text-muted-foreground/50' : 'shrink-0 text-[10px] text-muted-foreground'}>{item.detail}</span>
             </label>
           );
         })}
