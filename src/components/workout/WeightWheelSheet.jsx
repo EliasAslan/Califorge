@@ -74,6 +74,7 @@ export default function WeightWheelSheet({ open, onOpenChange, value, unit = 'kg
   const initial = Number.isFinite(Number(value)) ? Number(value) : (unit === 'lb' ? 154 : 70);
   const [whole, setWhole] = useState(Math.floor(initial));
   const [decimal, setDecimal] = useState(Math.round((initial - Math.floor(initial)) * 10) % 10);
+  const [error, setError] = useState('');
   const initialWhole = Math.min(maxWhole, Math.max(minWhole, Math.floor(initial)));
   const initialDecimal = Math.round((initial - Math.floor(initial)) * 10) % 10;
 
@@ -86,8 +87,13 @@ export default function WeightWheelSheet({ open, onOpenChange, value, unit = 'kg
 
   const current = Number(`${whole}.${decimal}`);
   const confirm = async () => {
-    await onCommit?.(current);
-    onOpenChange(false);
+    setError('');
+    try {
+      await onCommit?.(current);
+      onOpenChange(false);
+    } catch (saveError) {
+      setError(saveError.message || 'Could not save bodyweight. Try again.');
+    }
   };
 
   return (
@@ -114,6 +120,7 @@ export default function WeightWheelSheet({ open, onOpenChange, value, unit = 'kg
         <WheelColumn label="Decimal" values={DECIMALS} value={decimal} initialValue={initialDecimal} onChange={setDecimal} open={open} />
       </div>
       <p className="mt-3 text-center text-[10px] text-[var(--console-steel)]">Swipe each column separately · 0.1 {unit} steps</p>
+      {error && <p role="alert" className="mt-2 text-center text-[11px] text-[var(--console-oxide)]">{error}</p>}
     </ConsoleSheet>
   );
 }
