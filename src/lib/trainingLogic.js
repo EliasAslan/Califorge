@@ -150,6 +150,7 @@ export const buildSession = (workoutId, week, mode = 'full', context = {}) => {
     workoutId,
     workoutName: workout.name,
     workoutCategory: workout.category,
+    programId: context.programId || getActiveProgramId(),
     week,
     mode,
     timeBudgetMin: Number.isFinite(Number(context.timeBudgetMin)) && Number(context.timeBudgetMin) > 0 ? Number(context.timeBudgetMin) : null,
@@ -170,7 +171,7 @@ export const buildSession = (workoutId, week, mode = 'full', context = {}) => {
 };
 
 // ── Build a session from an arbitrary list of exercise ids (custom workouts) ──
-export const buildCustomSession = (name, exerciseIds, week, mode = 'full') => {
+export const buildCustomSession = (name, exerciseIds, week, mode = 'full', programId = getActiveProgramId()) => {
   const deload = isDeloadWeek(week);
   const exercises = exerciseIds.map((id) => buildExerciseEntry(id, mode, deload)).filter(Boolean);
 
@@ -179,6 +180,7 @@ export const buildCustomSession = (name, exerciseIds, week, mode = 'full') => {
     workoutId: `custom_${Date.now()}`,
     workoutName: name,
     workoutCategory: exercises[0]?.category || 'push',
+    programId,
     week,
     mode,
     dayLabel: 'CUSTOM',
