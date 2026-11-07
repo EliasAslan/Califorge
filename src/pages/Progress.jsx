@@ -9,10 +9,15 @@ import PhaseHistoryWidget from '@/components/progress/PhaseHistoryWidget';
 import SkillsWidget from '@/components/progress/SkillsWidget';
 import MuscleBalanceWidget from '@/components/progress/MuscleBalanceWidget';
 import PRsWidget from '@/components/progress/PRsWidget';
+import WeightWidget from '@/components/progress/WeightWidget';
+import { useBodyweightEntries } from '@/hooks/useTrainingData';
+import { loadSettings } from '@/lib/storage';
 
 export default function Progress() {
   const navigate = useNavigate();
   const { data: sessions = [] } = useSessions();
+  const { data: bodyweightEntries = [] } = useBodyweightEntries();
+  const units = loadSettings().units || 'kg';
   const programId = getActiveProgramId();
   const currentWeek = loadCurrentWeek(programId);
   const phase = getPhaseForWeek(currentWeek, programId);
@@ -30,14 +35,14 @@ export default function Progress() {
         <p className="mt-1 text-sm text-muted-foreground">{focus.focus}</p>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-6 sm:gap-4">
         <OverviewWidget
           sessions={sessions}
           currentWeek={currentWeek}
           programId={programId}
           phase={phase}
           onClick={() => navigate('/progress/week')}
-          className="sm:col-span-6"
+          className="col-span-2 sm:col-span-6"
         />
         <PhaseHistoryWidget
           sessions={sessions}
@@ -52,7 +57,7 @@ export default function Progress() {
             currentWeek={currentWeek}
             programId={programId}
             onClick={() => navigate('/progress/muscle-balance')}
-            className="sm:col-span-4"
+            className="col-span-1 sm:col-span-3"
           />
         ) : (
           <SkillsWidget
@@ -64,7 +69,13 @@ export default function Progress() {
         <PRsWidget
           sessions={sessions}
           onClick={() => navigate('/progress/records')}
-          className="sm:col-span-2"
+          className="col-span-1 sm:col-span-3"
+        />
+        <WeightWidget
+          entries={bodyweightEntries}
+          unit={units}
+          onClick={() => navigate('/progress/weight')}
+          className="col-span-1 sm:col-span-3"
         />
       </div>
     </main>
