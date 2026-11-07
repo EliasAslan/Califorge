@@ -217,7 +217,7 @@ export default function WorkoutSession() {
       const makeReplacement = (source, sets) => ({
         ...source,
         plannedExerciseId: source.plannedExerciseId || source.originalId || source.exerciseId,
-        originalId: definition.id,
+        originalId: source.originalId || source.exerciseId,
         exerciseId: definition.id,
         name: definition.name,
         variation: definition.variation,
