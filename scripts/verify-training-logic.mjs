@@ -111,6 +111,19 @@ try {
   assert.equal(logic.getPhaseCompletion([completedSession('upper_a', 8), completedSession('upper_b', 8), completedSession('lower_a', 8)], 8, 'hypertrophy').complete, true);
   assert.equal(logic.getPhaseCompletion([completedSession('upper_a', 8), completedSession('upper_b', 8)], 8, 'hypertrophy'), null);
 
+  // Legacy history without a saved cycle-start timestamp should still
+  // detect a week-number rollover and keep the previous cycle out of charts.
+  storage.saveProgramCycleStarts({});
+  const legacyCycles = [
+    completedSession('push_a', 7, '2026-08-01T12:00:00.000Z'),
+    completedSession('pull_a', 8, '2026-08-08T12:00:00.000Z'),
+    completedSession('push_a', 1, '2026-08-15T12:00:00.000Z'),
+    completedSession('pull_a', 1, '2026-08-16T12:00:00.000Z'),
+  ];
+  assert.deepEqual(logic.getCurrentCycleSessions(legacyCycles, 'skill').map((session) => session.week), [1, 1]);
+  assert.equal(logic.getCycleWeeks(legacyCycles, 1, 'skill')[7].sets, 0);
+  assert.equal(logic.getCycleConsistency(legacyCycles, 1, 'skill').byWeek[7].completed, 0);
+
   // Starting a new cycle isolates same-numbered weeks from previous cycles,
   // including cycle-specific progress tracking.
   storage.startNewCycle('skill');
