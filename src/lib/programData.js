@@ -449,7 +449,16 @@ export const EXERCISES = {
     sets: 3, targetReps: [6, 10], restSec: 120, rir: '2',
     equipment: ['Rings'], muscles: ['Triceps', 'Chest', 'Shoulders'],
     difficulty: 'Advanced', progression: 'Add weight / RTO hold',
+    alternatives: ['h_chair_dip'],
     notes: 'Turn rings out at the top. Full dip depth.',
+  }),
+  h_chair_dip: E({
+    id: 'h_chair_dip', name: 'Chair Dips', variation: 'Feet supported',
+    visualId: 'dip', category: 'push', type: 'reps',
+    sets: 3, targetReps: [8, 15], restSec: 90, rir: '2',
+    equipment: ['Stable chair', 'Floor'], muscles: ['Triceps', 'Chest', 'Shoulders'],
+    difficulty: 'Beginner', progression: 'Straighter legs / slower tempo',
+    notes: 'Keep the chair stable, shoulders controlled, and use a pain-free range of motion.',
   }),
   h_chinup: E({
     id: 'h_chinup', name: 'Chin-ups', variation: 'Shoulder-width, supinated',
