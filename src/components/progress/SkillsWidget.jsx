@@ -11,7 +11,7 @@ export default function SkillsWidget({ sessions, onClick, className }) {
       onClick={onClick}
       role="button"
       tabIndex={0}
-      className={`rounded-2xl border border-border bg-card/50 p-2.5 sm:p-4 active:scale-[0.99] transition-transform cursor-pointer flex flex-col ${className || ''}`}
+      className={`h-[184px] min-h-[184px] min-w-0 overflow-hidden rounded-2xl border border-border bg-card/50 p-2.5 sm:p-4 active:scale-[0.99] transition-transform cursor-pointer flex flex-col ${className || ''}`}
     >
       <div className="flex items-center justify-between mb-2">
         <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">Skill tree</p>
