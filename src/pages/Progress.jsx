@@ -74,7 +74,7 @@ export default function Progress() {
           entries={bodyweightEntries}
           unit={units}
           onClick={() => navigate('/progress/weight')}
-          className="col-span-1 sm:col-span-3"
+          className="col-span-2 sm:col-span-6"
         />
       </div>
     </main>
