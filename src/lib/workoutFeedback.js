@@ -30,7 +30,7 @@ const playTones = (notes) => {
       const gain = context.createGain();
       const start = startAt + delay;
       const end = start + duration;
-      oscillator.type = 'sine';
+      oscillator.type = note.type || 'sine';
       oscillator.frequency.setValueAtTime(frequency, start);
       gain.gain.setValueAtTime(0.0001, start);
       gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), start + 0.012);
@@ -104,17 +104,19 @@ export const triggerFeedback = (cue = 'selection') => {
 // Browsers cannot set vibration intensity; stronger cues use longer pulse patterns.
 export const playRestCountdownSound = (secondsRemaining) => {
   if (!loadSettings().restSound) return;
-  const volume = secondsRemaining >= 5 ? 0.018 : secondsRemaining === 4 ? 0.032 : 0.052;
+  // Square waves have a clearer edge than soft sine tones on phone speakers.
+  // Keep levels below clipping while making the final countdown hard to miss.
+  const volume = secondsRemaining >= 5 ? 0.16 : secondsRemaining === 4 ? 0.22 : 0.28;
   const frequency = secondsRemaining >= 5 ? 660 : secondsRemaining === 4 ? 740 : 880;
-  playTones([{ frequency, duration: 0.055, volume }]);
+  playTones([{ frequency, duration: 0.085, volume, type: 'square' }]);
 };
 
 export const playRestCompleteSound = () => {
   if (!loadSettings().restSound) return;
   playTones([
-    { frequency: 880, duration: 0.16, volume: 0.09 },
-    { frequency: 1046, delay: 0.17, duration: 0.17, volume: 0.095 },
-    { frequency: 660, delay: 0.36, duration: 0.34, volume: 0.1 },
+    { frequency: 880, duration: 0.2, volume: 0.28, type: 'triangle' },
+    { frequency: 1046, delay: 0.2, duration: 0.22, volume: 0.3, type: 'triangle' },
+    { frequency: 660, delay: 0.43, duration: 0.42, volume: 0.32, type: 'triangle' },
   ]);
 };
 
