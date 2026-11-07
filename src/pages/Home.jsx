@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { triggerFeedback } from '@/lib/workoutFeedback';
 import { ArrowRight, Check, ChevronDown, Clock, Dumbbell, Moon, Play, RotateCcw, Settings2, Trash2 } from 'lucide-react';
-import { getActiveProgram, getActiveProgramId, getExercise, getWorkout, getProgramWorkouts, categoryColor } from '@/lib/programData';
+import { getActiveProgram, getActiveProgramId, getExercise, getWorkout, getProgramWorkouts, categoryColor, WARMUPS, COOLDOWNS, RECOVERY } from '@/lib/programData';
 import { getPhaseForWeek, getWeekMeta, buildSession, buildCustomSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, getExercisesForTimeBudget, estimateExercisesDuration, getModeForTimeBudget } from '@/lib/trainingLogic';
 import { loadCurrentWeek, loadActiveSession, saveActiveSession, clearActiveSession, getEnjoyment, loadSettings } from '@/lib/storage';
 import { useCustomWorkouts, useSessions } from '@/hooks/useTrainingData';
@@ -103,16 +103,22 @@ export default function Home() {
           <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={discardActive} className="apex-button-secondary text-sm"><Trash2 size={15} /> Discard</button><button type="button" onClick={() => withViewTransition(() => navigate('/workout'), 'console-in')} className="apex-button-primary text-sm"><Play size={16} fill="currentColor" /> Resume</button></div>
         </section>
       ) : doneToday ? (
+        <>
+        <RoutineCard key={todaySession.id || todaySession.date || 'today-cooldown'} title="Cooldown" subtitle="Bring your body back down after training." items={getRoutineForExercises(todaySession.exercises, COOLDOWNS)} routineKey={todaySession.id || todaySession.date || 'today-cooldown'} />
         <section className="apex-session-state apex-session-done">
           <div className="flex items-start gap-3"><div className="apex-state-icon"><Check size={21} /></div><div className="min-w-0 flex-1"><p className="apex-overline">TODAY'S SESSION</p><h2 className="mt-1 text-xl font-bold">Done for today.</h2><p className="mt-1 text-sm text-muted-foreground">{todaySession.workoutName} · {completedCount(todaySession)} sets · {formatDuration(todaySession.durationSec) || '—'}</p></div></div>
           <p className="mt-3 text-sm text-muted-foreground">Your plan stays on track. Pick it up at the next planned session.</p>
           <Link to="/plan" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold">View plan <ArrowRight size={14} /></Link>
         </section>
+        </>
       ) : isRestDay ? (
+        <>
+        <RoutineCard key="recovery" title="Recovery" subtitle="A gentle reset for your rest day." items={RECOVERY} routineKey="recovery" />
         <section className="apex-rest-panel">
           <div className="flex items-start gap-3"><div className="apex-rest-icon"><Moon size={22} /></div><div><p className="apex-overline">PLANNED RECOVERY</p><h2 className="mt-1 text-2xl font-bold">Take the space.</h2><p className="mt-1 text-sm text-muted-foreground">Rest is part of the plan. Nothing is waiting to be caught up.</p></div></div>
           <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3"><p className="text-xs text-muted-foreground">Next: {workout?.name || 'Upcoming session'}</p><button type="button" onClick={() => setTrainOnRestDay(true)} className="apex-button-secondary text-xs">Train anyway</button></div>
         </section>
+        </>
       ) : workout ? (
         <>
           <section className="apex-workout-hero" style={{ '--session-accent': categoryAccent }}>
@@ -154,6 +160,8 @@ export default function Home() {
             {(workoutOverride || customWorkoutOverride) && <button type="button" onClick={() => { setWorkoutOverride(null); setCustomWorkoutOverride(null); }} className="mt-2 block text-xs text-muted-foreground underline underline-offset-4">Restore planned workout</button>}
           </section>
 
+          <RoutineCard key={workout.id || 'workout-warmup'} title="Warm-up" subtitle="Prepare the joints and movements you'll use today." items={getRoutineForExercises(exerciseIds, WARMUPS)} routineKey={workout.id || 'workout-warmup'} />
+
           <section className="apex-time-panel mt-3">
             <div className="flex items-center justify-between gap-3"><div><p className="apex-overline">TIME AVAILABLE</p><p className="mt-1 text-sm font-semibold">How long have you got?</p></div><label className="apex-time-input"><input aria-label="Available training minutes" type="number" min="10" max="120" value={availableMinutes} onChange={(event) => setAvailableMinutes(event.target.value)} onBlur={() => setAvailableMinutes(String(Math.max(10, Math.min(120, Number(availableMinutes) || 30))))} /><span>min</span></label></div>
             <div className="mt-3 grid grid-cols-4 gap-2">{TIME_PRESETS.map((minutes) => { const selected = Number(availableMinutes) === minutes; return <button key={minutes} type="button" onClick={() => setAvailableMinutes(String(minutes))} className={`apex-time-choice ${selected ? 'is-selected' : ''}`} aria-pressed={selected}>{minutes}<span>m</span></button>; })}</div>
@@ -170,3 +178,50 @@ export default function Home() {
 function greeting(date) { const hour = date.getHours(); if (hour < 12) return 'Good morning'; if (hour < 18) return 'Good afternoon'; return 'Good evening'; }
 function formatDate(date) { return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }); }
 function completedCount(session) { return (session.exercises || []).reduce((count, exercise) => count + (exercise.sets || []).filter((set) => set.completed && !set.skipped).length, 0); }
+
+
+function getRoutineForExercises(exercisesOrIds, routines) {
+  const categories = [...new Set((exercisesOrIds || [])
+    .map((item) => typeof item === 'string' ? getExercise(item)?.category : item?.category)
+    .filter(Boolean))];
+  const selected = categories.length ? categories : ['skill'];
+  const seen = new Set();
+  return selected.flatMap((category) => routines[category] || [])
+    .filter((item) => {
+      const key = item.name.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function RoutineCard({ title, subtitle, items }) {
+  const [completed, setCompleted] = React.useState([]);
+  if (!items?.length) return null;
+  return (
+    <details className="group mt-3 overflow-hidden rounded-2xl border border-border/70 bg-card/50">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+          <span>{completed.length}/{items.length}</span>
+          <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
+        </div>
+      </summary>
+      <div className="border-t border-border/70 px-4 py-2">
+        {items.map((item, index) => {
+          const checked = completed.includes(index);
+          return (
+            <label key={item.name} className="flex min-h-11 cursor-pointer items-center gap-3 border-b border-border/50 py-2 last:border-0">
+              <input type="checkbox" checked={checked} onChange={() => setCompleted((current) => checked ? current.filter((value) => value !== index) : [...current, index])} className="h-4 w-4 accent-current" />
+              <span className={checked ? 'flex-1 text-sm text-muted-foreground line-through' : 'flex-1 text-sm'}>{item.name}</span>
+              <span className="text-xs text-muted-foreground">{item.detail}</span>
+            </label>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
