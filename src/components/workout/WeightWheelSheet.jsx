@@ -9,8 +9,6 @@ const DECIMALS = Array.from({ length: 10 }, (_, index) => index);
 function WheelColumn({ label, values, value, initialValue, onChange, open }) {
   const ref = useRef(null);
   const settle = useRef(null);
-  const index = Math.max(0, values.indexOf(value));
-
   useEffect(() => {
     if (open && ref.current) ref.current.scrollTop = Math.max(0, values.indexOf(initialValue)) * ITEM_H;
   }, [open, initialValue]);
