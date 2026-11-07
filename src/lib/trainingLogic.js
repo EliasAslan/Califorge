@@ -678,7 +678,10 @@ export const getCurrentCycleSessions = (sessions, programId) => {
   // logged a new Week 1 session yet, do not display the previous Week 8 as
   // though it belongs to the new cycle.
   if (loadCurrentWeek(programId) === 1) {
-    const lastWeekEight = programSessions.findLastIndex((session) => Number(session.week) === 8);
+    let lastWeekEight = -1;
+    for (let index = 0; index < programSessions.length; index += 1) {
+      if (Number(programSessions[index].week) === 8) lastWeekEight = index;
+    }
     const hasWeekOneAfterReset = lastWeekEight >= 0
       && programSessions.slice(lastWeekEight + 1).some((session) => Number(session.week) === 1);
     if (lastWeekEight >= 0 && !hasWeekOneAfterReset) return [];
