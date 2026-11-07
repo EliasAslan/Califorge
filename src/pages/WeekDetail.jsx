@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Check, Minus, Dumbbell, Clock } from 'lucide-react';
 import { getSchedule, getWorkout, categoryColor, getActiveProgramId } from '@/lib/programData';
 import { useSessions } from '@/hooks/useTrainingData';
-import { startOfWeek, isSameDay, formatDuration } from '@/lib/trainingLogic';
+import { startOfWeek, isSameDay, formatDuration, getProgramSessions } from '@/lib/trainingLogic';
 import ExerciseVisual from '@/components/ExerciseVisual';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -13,6 +13,7 @@ export default function WeekDetail() {
   const { data: sessions = [] } = useSessions();
   const programId = getActiveProgramId();
   const accent = categoryColor('pull');
+  const programSessions = getProgramSessions(sessions, programId);
   const start = startOfWeek();
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -23,7 +24,7 @@ export default function WeekDetail() {
 
   let totalWorkouts = 0, totalSets = 0, totalSec = 0;
   days.forEach((d) => {
-    const sess = sessions.find((s) => isSameDay(new Date(s.date), d));
+    const sess = programSessions.find((s) => isSameDay(new Date(s.date), d));
     if (sess) {
       totalWorkouts++;
       totalSets += sess.exercises.reduce((n, e) => n + e.sets.filter((x) => x.completed && !x.skipped).length, 0);
