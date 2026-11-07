@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { categoryColor, MODES } from '@/lib/programData';
 import { getProgressionStatus, formatClock, getPhaseCompletion, maybeAdvanceWeek } from '@/lib/trainingLogic';
-import { loadActiveSession, clearActiveSession, loadSettings, saveCurrentWeek } from '@/lib/storage';
+import { loadActiveSession, clearActiveSession, loadSettings, startNewCycle } from '@/lib/storage';
 import { useSessions, useCreateSession, useBodyweightEntries, useCreateBodyweightEntry } from '@/hooks/useTrainingData';
 import useConsoleChrome from '@/hooks/useConsoleChrome';
 import WeightWheelSheet from '@/components/workout/WeightWheelSheet';
@@ -117,7 +117,7 @@ export default function WorkoutSummary() {
       const synthetic = { ...payload, id: `tmp_${Date.now()}` };
       const allSessions = [...sessions, synthetic];
       if (session.week === 8 && getPhaseCompletion(allSessions, 8, programId)?.complete) {
-        saveCurrentWeek(1, programId);
+        startNewCycle(programId);
         withViewTransition(() => navigate('/phase-complete'), 'console-out');
       } else {
         maybeAdvanceWeek(allSessions, programId);
