@@ -613,7 +613,21 @@
 .console-ladder-step {
   min-width: 0;
   flex: 1;
+  padding: 2px 0 3px;
   text-align: left;
+  cursor: pointer;
+}
+.console-ladder-step:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+.console-ladder-step:not(:disabled):hover .console-ladder-bar {
+  filter: brightness(1.3);
+}
+.console-ladder-step:focus-visible {
+  outline: 2px solid var(--console-signal, var(--brand));
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 .console-ladder-bar {
   height: 3px;
