@@ -662,16 +662,26 @@ export const getRequiredWorkoutsPerWeek = (programId) => {
 export const getCurrentCycleSessions = (sessions, programId) => {
   const programSessions = getProgramSessions(sessions, programId)
     .slice()
-    .sort((a, b) => new Date(a.date || a.finishedAt || a.startedAt || 0) - new Date(b.date || b.finishedAt || b.startedAt || 0));
+    .sort((a, b) => new Date(a.startedAt || a.date || a.finishedAt || 0) - new Date(b.startedAt || b.date || b.finishedAt || 0));
   const cycleStartAt = loadCycleStartAt(programId);
   if (cycleStartAt) {
     const cycleStartMs = new Date(cycleStartAt).getTime();
     if (Number.isFinite(cycleStartMs)) {
       return programSessions.filter((session) => {
-        const sessionDate = new Date(session.date || session.finishedAt || session.startedAt || 0).getTime();
+        const sessionDate = new Date(session.startedAt || session.date || session.finishedAt || 0).getTime();
         return Number.isFinite(sessionDate) && sessionDate >= cycleStartMs;
       });
     }
+  }
+
+  // If an older install has reset the selector to Week 1 but has not
+  // logged a new Week 1 session yet, do not display the previous Week 8 as
+  // though it belongs to the new cycle.
+  if (loadCurrentWeek(programId) === 1) {
+    const lastWeekEight = programSessions.findLastIndex((session) => Number(session.week) === 8);
+    const hasWeekOneAfterReset = lastWeekEight >= 0
+      && programSessions.slice(lastWeekEight + 1).some((session) => Number(session.week) === 1);
+    if (lastWeekEight >= 0 && !hasWeekOneAfterReset) return [];
   }
 
   // Older installs may have workout history from a previous cycle but no
