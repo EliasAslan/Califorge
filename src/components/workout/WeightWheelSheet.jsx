@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ConsoleSheet from '@/components/workout/ConsoleSheet';
 import { haptic } from '@/lib/workoutFeedback';
 
@@ -6,7 +6,7 @@ const ITEM_H = 44;
 const PAD = ITEM_H * 2;
 const DECIMALS = Array.from({ length: 10 }, (_, index) => index);
 
-function WheelColumn({ label, values, value, onChange, min = 0 }) {
+function WheelColumn({ label, values, value, onChange, open }) {
   const ref = useRef(null);
   const settle = useRef(null);
   const index = Math.max(0, values.indexOf(value));
@@ -70,7 +70,7 @@ function WheelColumn({ label, values, value, onChange, min = 0 }) {
 export default function WeightWheelSheet({ open, onOpenChange, value, unit = 'kg', onCommit }) {
   const minWhole = unit === 'lb' ? 55 : 25;
   const maxWhole = unit === 'lb' ? 550 : 250;
-  const wholeValues = Array.from({ length: maxWhole - minWhole + 1 }, (_, index) => minWhole + index);
+  const wholeValues = useMemo(() => Array.from({ length: maxWhole - minWhole + 1 }, (_, index) => minWhole + index), [minWhole, maxWhole]);
   const initial = Number.isFinite(Number(value)) ? Number(value) : (unit === 'lb' ? 154 : 70);
   const [whole, setWhole] = useState(Math.floor(initial));
   const [decimal, setDecimal] = useState(Math.round((initial - Math.floor(initial)) * 10) % 10);
@@ -107,9 +107,9 @@ export default function WeightWheelSheet({ open, onOpenChange, value, unit = 'kg
         <span className="ml-1 text-[14px] font-semibold tracking-normal text-[var(--console-steel)]">{unit}</span>
       </div>
       <div className="relative flex gap-3" data-vaul-no-drag>
-        <WheelColumn label="Whole" values={wholeValues} value={whole} onChange={setWhole} />
+        <WheelColumn label="Whole" values={wholeValues} value={whole} onChange={setWhole} open={open} />
         <span className="mt-[104px] text-xl font-bold text-[var(--console-steel)]">.</span>
-        <WheelColumn label="Decimal" values={DECIMALS} value={decimal} onChange={setDecimal} />
+        <WheelColumn label="Decimal" values={DECIMALS} value={decimal} onChange={setDecimal} open={open} />
       </div>
       <p className="mt-3 text-center text-[10px] text-[var(--console-steel)]">Swipe each column separately · 0.1 {unit} steps</p>
     </ConsoleSheet>
