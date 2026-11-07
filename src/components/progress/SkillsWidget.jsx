@@ -18,7 +18,7 @@ export default function SkillsWidget({ sessions, onClick, className }) {
         <ChevronRight size={18} className="text-muted-foreground" />
       </div>
       <div className="flex-1 grid grid-cols-1 gap-1.5">
-        {tracks.map((t) => {
+        {tracks.slice(0, 2).map((t) => {
           const cur = t.status.current >= 0 ? t.levels[t.status.current].label : 'Not started';
           return (
             <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-background/50">
