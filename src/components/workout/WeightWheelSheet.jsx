@@ -85,8 +85,8 @@ export default function WeightWheelSheet({ open, onOpenChange, value, unit = 'kg
   }, [open, value, minWhole, maxWhole, unit]);
 
   const current = Number(`${whole}.${decimal}`);
-  const confirm = () => {
-    onCommit?.(current);
+  const confirm = async () => {
+    await onCommit?.(current);
     onOpenChange(false);
   };
 
