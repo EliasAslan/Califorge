@@ -66,13 +66,13 @@ export default function Progress() {
         <PRsWidget
           sessions={sessions}
           onClick={() => navigate('/progress/records')}
-          className="col-span-2"
+          className={isHypertrophy ? "col-span-3" : "col-span-2"}
         />
         <WeightWidget
           entries={bodyweightEntries}
           unit={units}
           onClick={() => navigate('/progress/weight')}
-          className="col-span-2"
+          className={isHypertrophy ? "col-span-3" : "col-span-2"}
         />
       </div>
     </main>
