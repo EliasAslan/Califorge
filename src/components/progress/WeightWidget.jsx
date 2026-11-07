@@ -22,7 +22,7 @@ export default function WeightWidget({ entries = [], unit = 'kg', onClick, class
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[126px] w-full flex-col rounded-2xl border border-border/70 bg-card/45 p-2.5 text-left transition-colors hover:bg-card/75 active:scale-[0.99] ${className}`}
+      className={`flex h-[184px] min-h-[184px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/45 p-2.5 text-left transition-colors hover:bg-card/75 active:scale-[0.99] ${className}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"><Scale size={13} /> Bodyweight</span>
