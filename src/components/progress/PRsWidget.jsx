@@ -1,10 +1,8 @@
 import React from 'react';
 import { ChevronRight, Trophy } from 'lucide-react';
-import { categoryColor } from '@/lib/programData';
 import { countPersonalRecords, getAllPersonalRecords } from '@/lib/trainingLogic';
 
 export default function PRsWidget({ sessions, onClick, className }) {
-  const accent = categoryColor('pull');
   const count = countPersonalRecords(sessions);
   const recent = getAllPersonalRecords(sessions).slice(0, 1);
 
