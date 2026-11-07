@@ -7,6 +7,8 @@ import {
   deleteCustomWorkout,
   listCustomWorkouts,
   listSessions,
+  listBodyweightEntries,
+  createBodyweightEntry,
 } from '@/lib/localDatabase';
 
 // Local-first records are stored in IndexedDB and remain available offline.
@@ -61,5 +63,21 @@ export function useDeleteAllCustomWorkouts() {
   return useMutation({
     mutationFn: deleteAllCustomWorkouts,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customWorkouts'] }),
+  });
+}
+
+
+export function useBodyweightEntries() {
+  return useQuery({
+    queryKey: ['bodyweightEntries'],
+    queryFn: listBodyweightEntries,
+  });
+}
+
+export function useCreateBodyweightEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createBodyweightEntry,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bodyweightEntries'] }),
   });
 }
