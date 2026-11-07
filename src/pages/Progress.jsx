@@ -108,11 +108,22 @@ export default function Progress() {
     if (selected.length < 2) return;
     setLayout(current => {
       const chosen = new Set(selected);
-      const items = current.flatMap(item => item.type === 'stack' ? item.items : [{ id: item.id, size: item.size }]);
-      const layered = items.filter(item => chosen.has(item.id));
-      const remaining = items.filter(item => !chosen.has(item.id));
-      const stack = { type: 'stack', id: `stack-${Date.now()}`, items: layered };
-      return [...remaining.map(item => ({ type: 'widget', ...item })), stack];
+      const layered = [];
+      const remaining = current.flatMap(item => {
+        if (item.type === 'widget') {
+          if (chosen.has(item.id)) { layered.push({ id: item.id, size: item.size }); return []; }
+          return [item];
+        }
+        const kept = item.items.filter(child => {
+          if (chosen.has(child.id)) { layered.push(child); return false; }
+          return true;
+        });
+        if (kept.length > 1) return [{ ...item, items: kept }];
+        if (kept.length === 1) return [{ type: 'widget', ...kept[0] }];
+        return [];
+      });
+      if (layered.length < 2) return current;
+      return [...remaining, { type: 'stack', id: `stack-${Date.now()}`, items: layered }];
     });
     setSelected([]);
   };
