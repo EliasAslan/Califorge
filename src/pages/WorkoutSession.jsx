@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { useNavigate } from 'react-router-dom';
 import {
   X, Info, Check, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2,
-  StickyNote,
+  StickyNote, ArrowLeftRight, Search,
 } from 'lucide-react';
-import { categoryColor, getExercise, MODES } from '@/lib/programData';
+import { categoryColor, getExercise, LIBRARY_EXERCISES, MODES } from '@/lib/programData';
 import {
   formatTarget, getLastPerformance, formatLastPerformance, formatClock, getRepRecommendation,
 } from '@/lib/trainingLogic';
@@ -52,6 +52,8 @@ export default function WorkoutSession() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [showCue, setShowCue] = useState(false);
   const [showNote, setShowNote] = useState(false);
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [exerciseQuery, setExerciseQuery] = useState('');
   const [, setIncrementTick] = useState(0);
   const [stageAnimate, setStageAnimate] = useState(false);
   const stageMountedRef = useRef(false);
@@ -196,42 +198,97 @@ export default function WorkoutSession() {
   };
 
   const switchExercise = (targetId) => {
-    if (!getExercise(targetId)) return;
+    const definition = getExercise(targetId);
+    if (!definition) return;
     triggerFeedback('selection');
     setMissingAt(null);
+    setShowExercisePicker(false);
+    setShowCue(false);
     setSession((prev) => {
       const next = structuredClone(prev);
-      const exercise = next.exercises[targetCursor.exerciseIndex];
-      const definition = getExercise(targetId);
-      if (!definition) return prev;
-      exercise.originalId = exercise.originalId || exercise.exerciseId;
-      exercise.exerciseId = definition.id;
-      exercise.name = definition.name;
-      exercise.variation = definition.variation;
-      exercise.visualId = definition.visualId;
-      exercise.category = definition.category;
-      exercise.type = definition.type;
-      exercise.perSide = !!definition.perSide;
-      exercise.durationMin = definition.durationMin || null;
-      exercise.restSec = definition.restSec || null;
-      exercise.rpe = definition.rpe || null;
-      exercise.rir = definition.rir || null;
-      exercise.sets.forEach((s) => {
-        if (s.completed) return;
-        s.targetReps = definition.targetReps ? [...definition.targetReps] : null;
-        s.targetSec = definition.targetSec ? [...definition.targetSec] : null;
-        s.holdSec = definition.holdSec ?? null;
-        s.actualReps = null;
-        s.actualSec = null;
-        s.weight = null;
-        s.rpe = null;
-        s.rir = null;
-        s.progression = null;
+      const exerciseIndex = targetCursor.exerciseIndex;
+      const exercise = next.exercises[exerciseIndex];
+      if (!exercise || exercise.exerciseId === targetId) return prev;
+
+      const completedSets = exercise.sets.filter((s) => s.completed);
+      const pendingSets = exercise.sets.filter((s) => !s.completed);
+      if (!pendingSets.length) return prev;
+
+      const makeReplacement = (source, sets) => ({
+        ...source,
+        plannedExerciseId: source.plannedExerciseId || source.originalId || source.exerciseId,
+        originalId: definition.id,
+        exerciseId: definition.id,
+        name: definition.name,
+        variation: definition.variation,
+        visualId: definition.visualId,
+        category: definition.category,
+        type: definition.type,
+        perSide: !!definition.perSide,
+        durationMin: definition.durationMin || null,
+        restSec: definition.restSec || null,
+        rpe: definition.rpe || null,
+        rir: definition.rir || null,
+        progression: null,
+        substitutedFrom: source.name,
+        substitutedBy: undefined,
+        sets: sets.map((s) => ({
+          ...s,
+          targetReps: definition.targetReps ? [...definition.targetReps] : null,
+          targetSec: definition.targetSec ? [...definition.targetSec] : null,
+          holdSec: definition.holdSec ?? null,
+          actualReps: null,
+          actualSec: null,
+          weight: null,
+          rpe: null,
+          rir: null,
+          progression: null,
+          completed: false,
+          skipped: false,
+          completedAt: null,
+        })),
       });
-      exercise.progression = null;
+
+      if (completedSets.length) {
+        const completedEntry = {
+          ...exercise,
+          sets: completedSets,
+          substitutedBy: definition.name,
+        };
+        const replacementEntry = makeReplacement(exercise, pendingSets);
+        next.exercises.splice(exerciseIndex, 1, completedEntry, replacementEntry);
+        next.cursor = { exerciseIndex: exerciseIndex + 1, setIndex: 0 };
+      } else {
+        next.exercises[exerciseIndex] = makeReplacement(exercise, exercise.sets);
+        next.cursor = {
+          exerciseIndex,
+          setIndex: Math.min(targetCursor.setIndex, next.exercises[exerciseIndex].sets.length - 1),
+        };
+      }
+
+      next.phase = 'work';
+      next.restEndsAt = null;
+      next.pendingNext = null;
       return next;
     });
   };
+
+  const openExercisePicker = () => {
+    setShowMenu(false);
+    setShowCue(false);
+    setExerciseQuery('');
+    setShowExercisePicker(true);
+  };
+
+  const matchingExercises = LIBRARY_EXERCISES
+    .filter((exercise) => {
+      const query = exerciseQuery.trim().toLowerCase();
+      if (!query) return true;
+      return [exercise.name, exercise.variation, exercise.category, ...(exercise.equipment || [])]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const togglePause = () => {
     triggerFeedback('confirm');
@@ -503,6 +560,14 @@ export default function WorkoutSession() {
                 <button
                   type="button"
                   role="menuitem"
+                  onClick={openExercisePicker}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                >
+                  <ArrowLeftRight size={14} /> Change exercise
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => {
                     setShowMenu(false);
                     finishWorkout();
@@ -663,6 +728,68 @@ export default function WorkoutSession() {
             currentId={cur.exerciseId}
             onSwitch={switchExercise}
           />
+          <button
+            type="button"
+            onClick={openExercisePicker}
+            disabled={!cur.sets.some((s) => !s.completed)}
+            className="flex w-full items-center justify-between rounded-xl border border-[var(--console-line)] px-3.5 py-3 text-left text-[12px] font-semibold text-[var(--console-chalk)] transition-colors hover:bg-[var(--console-surface-2)] disabled:opacity-40"
+          >
+            <span>Choose a different exercise</span>
+            <ArrowLeftRight size={14} />
+          </button>
+        </div>
+      </ConsoleSheet>
+
+      <ConsoleSheet
+        open={showExercisePicker}
+        onOpenChange={setShowExercisePicker}
+        title="Change exercise"
+        description="Choose an exercise for the remaining sets"
+      >
+        <div className="space-y-3 pb-2">
+          <p className="text-[11px] leading-relaxed text-[var(--console-steel)]">
+            Completed sets stay attached to the exercise you actually performed. Remaining sets move to the new exercise and are tracked separately.
+          </p>
+          <div className="relative">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--console-steel)]" />
+            <input
+              type="search"
+              value={exerciseQuery}
+              onChange={(event) => setExerciseQuery(event.target.value)}
+              placeholder="Search exercises or equipment"
+              className="h-11 w-full rounded-xl border border-[var(--console-line)] bg-transparent pl-9 pr-3 text-[13px] text-[var(--console-chalk)] outline-none placeholder:text-[var(--console-steel)] focus:border-[var(--console-chalk)]"
+            />
+          </div>
+          {!cur.sets.some((s) => !s.completed) && (
+            <p className="rounded-lg bg-[var(--console-surface-2)] p-3 text-[12px] text-[var(--console-steel)]">
+              All sets for this exercise are already completed. Choose the next exercise instead.
+            </p>
+          )}
+          <div className="max-h-[48dvh] space-y-1 overflow-y-auto">
+            {matchingExercises.map((exercise) => {
+              const isCurrent = exercise.id === cur.exerciseId;
+              return (
+                <button
+                  key={exercise.id}
+                  type="button"
+                  disabled={isCurrent || !cur.sets.some((s) => !s.completed)}
+                  onClick={() => switchExercise(exercise.id)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-left transition-colors hover:border-[var(--console-line)] hover:bg-[var(--console-surface-2)] disabled:cursor-default disabled:opacity-45"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-[var(--console-chalk)]">{exercise.name}</span>
+                    <span className="mt-0.5 block truncate text-[10px] text-[var(--console-steel)]">
+                      {exercise.variation} · {exercise.category} · {exercise.difficulty || 'General'}
+                    </span>
+                  </span>
+                  {isCurrent && <span className="text-[10px] font-semibold text-[var(--console-steel)]">Current</span>}
+                </button>
+              );
+            })}
+            {matchingExercises.length === 0 && (
+              <p className="py-8 text-center text-[12px] text-[var(--console-steel)]">No matching exercises.</p>
+            )}
+          </div>
         </div>
       </ConsoleSheet>
 
