@@ -6,7 +6,7 @@ const ITEM_H = 44;
 const PAD = ITEM_H * 2;
 const DECIMALS = Array.from({ length: 10 }, (_, index) => index);
 
-function WheelColumn({ label, values, value, onChange, open }) {
+function WheelColumn({ label, values, value, initialValue, onChange, open }) {
   const ref = useRef(null);
   const settle = useRef(null);
   const index = Math.max(0, values.indexOf(value));
@@ -107,9 +107,9 @@ export default function WeightWheelSheet({ open, onOpenChange, value, unit = 'kg
         <span className="ml-1 text-[14px] font-semibold tracking-normal text-[var(--console-steel)]">{unit}</span>
       </div>
       <div className="relative flex gap-3" data-vaul-no-drag>
-        <WheelColumn label="Whole" values={wholeValues} value={whole} onChange={setWhole} open={open} />
+        <WheelColumn label="Whole" values={wholeValues} value={whole} initialValue={initialWhole} onChange={setWhole} open={open} />
         <span className="mt-[104px] text-xl font-bold text-[var(--console-steel)]">.</span>
-        <WheelColumn label="Decimal" values={DECIMALS} value={decimal} onChange={setDecimal} open={open} />
+        <WheelColumn label="Decimal" values={DECIMALS} value={decimal} initialValue={initialDecimal} onChange={setDecimal} open={open} />
       </div>
       <p className="mt-3 text-center text-[10px] text-[var(--console-steel)]">Swipe each column separately · 0.1 {unit} steps</p>
     </ConsoleSheet>
