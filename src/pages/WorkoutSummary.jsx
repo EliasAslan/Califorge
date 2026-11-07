@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { categoryColor, MODES } from '@/lib/programData';
 import { getProgressionStatus, formatClock, getPhaseCompletion, maybeAdvanceWeek } from '@/lib/trainingLogic';
-import { loadActiveSession, clearActiveSession, loadSettings, startNewCycle } from '@/lib/storage';
+import { loadActiveSession, clearActiveSession, loadSettings, saveSettings, startNewCycle } from '@/lib/storage';
 import { useSessions, useCreateSession, useBodyweightEntries, useCreateBodyweightEntry } from '@/hooks/useTrainingData';
 import useConsoleChrome from '@/hooks/useConsoleChrome';
 import WeightWheelSheet from '@/components/workout/WeightWheelSheet';
@@ -83,6 +83,7 @@ export default function WorkoutSummary() {
   const saveBodyweight = async (value) => {
     const weightKg = weightUnit === 'lb' ? value / 2.2046226218 : value;
     await createBodyweightEntry({ weightKg, date: new Date().toISOString(), source: 'workout' });
+    saveSettings({ ...loadSettings(), bodyweight: Number(value.toFixed(1)) });
     setWeightLogged(true);
   };
 
