@@ -101,11 +101,20 @@ export const triggerFeedback = (cue = 'selection') => {
 };
 
 // Rest alerts retain their independent sound and vibration preferences.
+// Browsers cannot set vibration intensity; stronger cues use longer pulse patterns.
+export const playRestCountdownSound = (secondsRemaining) => {
+  if (!loadSettings().restSound) return;
+  const volume = secondsRemaining >= 5 ? 0.018 : secondsRemaining === 4 ? 0.032 : 0.052;
+  const frequency = secondsRemaining >= 5 ? 660 : secondsRemaining === 4 ? 740 : 880;
+  playTones([{ frequency, duration: 0.055, volume }]);
+};
+
 export const playRestCompleteSound = () => {
   if (!loadSettings().restSound) return;
   playTones([
-    { frequency: 880, duration: 0.14, volume: 0.075 },
-    { frequency: 1320, delay: 0.14, duration: 0.22, volume: 0.075 },
+    { frequency: 880, duration: 0.16, volume: 0.09 },
+    { frequency: 1046, delay: 0.17, duration: 0.17, volume: 0.095 },
+    { frequency: 660, delay: 0.36, duration: 0.34, volume: 0.1 },
   ]);
 };
 
