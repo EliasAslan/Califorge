@@ -98,6 +98,7 @@ export default function WorkoutSummary() {
       workoutId: session.workoutId,
       workoutName: session.workoutName,
       workoutCategory: session.workoutCategory,
+      programId: session.programId || loadSettings().activeProgram || 'skill',
       week: session.week,
       dayLabel: session.dayLabel,
       mode: session.mode || 'full',
@@ -112,7 +113,7 @@ export default function WorkoutSummary() {
       await createSession(payload);
       clearActiveSession();
       setSaved(true);
-      const programId = loadSettings().activeProgram || 'skill';
+      const programId = session.programId || loadSettings().activeProgram || 'skill';
       const synthetic = { ...payload, id: `tmp_${Date.now()}` };
       const allSessions = [...sessions, synthetic];
       if (session.week === 8 && getPhaseCompletion(allSessions, 8, programId)?.complete) {
