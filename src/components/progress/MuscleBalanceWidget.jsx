@@ -31,24 +31,24 @@ export default function MuscleBalanceWidget({ sessions, currentWeek, programId, 
       onClick={onClick}
       role="button"
       tabIndex={0}
-      className={`rounded-2xl border border-border bg-card/50 p-5 active:scale-[0.99] transition-transform cursor-pointer flex flex-col ${className || ''}`}
+      className={`rounded-2xl border border-border bg-card/50 p-2.5 sm:p-4 active:scale-[0.99] transition-transform cursor-pointer flex flex-col ${className || ''}`}
     >
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Muscle Volume</p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">Muscle Volume</p>
         <ChevronRight size={18} className="text-muted-foreground" />
       </div>
 
       {/* legend */}
-      <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3">
+      <div className="flex flex-wrap gap-x-2 gap-y-1 mb-2">
         {GROUPS.map((g) => (
-          <span key={g} className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <span key={g} className="inline-flex items-center gap-1.5 text-[8px] text-muted-foreground">
             <span className="w-2 h-2 rounded-full" style={{ background: CATEGORIES[g].color }} />
             {CATEGORIES[g].label}
           </span>
         ))}
       </div>
 
-      <div className="flex-1 flex items-end justify-between gap-1.5 min-h-[110px]">
+      <div className="flex-1 flex items-end justify-between gap-1.5 min-h-[92px]">
         {totals.map((t) => (
           <div key={t.week} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
             <span className="text-[10px] font-bold tnum" style={{ color: t.total ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground) / 0.5)' }}>
