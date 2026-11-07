@@ -65,9 +65,10 @@ export default function Home() {
   const startWorkout = () => {
     if (active) { withViewTransition(() => navigate('/workout'), 'console-in'); return; }
     if (!workout || !exerciseIds.length) return;
+    const sessionWeek = loadCurrentWeek(programId);
     const session = workout.isCustom
-      ? buildCustomSession(workout.name, exerciseIds, week, mode)
-      : buildSession(workout.id, week, mode, { ...context, exerciseIds, timeBudgetMin: timeBudget });
+      ? buildCustomSession(workout.name, exerciseIds, sessionWeek, mode)
+      : buildSession(workout.id, sessionWeek, mode, { ...context, programId, exerciseIds, timeBudgetMin: timeBudget });
     if (!session) return;
     saveActiveSession(session);
     triggerFeedback('workoutStart');
