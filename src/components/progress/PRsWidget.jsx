@@ -13,18 +13,18 @@ export default function PRsWidget({ sessions, onClick, className }) {
       onClick={onClick}
       role="button"
       tabIndex={0}
-      className={`rounded-2xl border border-border bg-card/50 p-5 active:scale-[0.99] transition-transform cursor-pointer flex flex-col ${className || ''}`}
+      className={`rounded-2xl border border-border bg-card/50 p-3.5 sm:p-4 active:scale-[0.99] transition-transform cursor-pointer flex flex-col ${className || ''}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Trophy size={15} className="text-muted-foreground" />
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">PRs</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-semibold">PRs</p>
         </div>
         <ChevronRight size={18} className="text-muted-foreground" />
       </div>
       <div className="flex-1 flex flex-col justify-end">
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-extrabold tnum leading-none">{count}</span>
+          <span className="text-[2rem] font-extrabold tnum leading-none">{count}</span>
           <span className="text-xs text-muted-foreground">records</span>
         </div>
         {recent[0] && (
