@@ -3,8 +3,8 @@
 // compatibility fallback for browsers where IndexedDB is unavailable.
 
 const DB_NAME = 'apex-personal-training';
-const DB_VERSION = 1;
-const STORES = Object.freeze({ sessions: 'sessions', customWorkouts: 'customWorkouts' });
+const DB_VERSION = 2;
+const STORES = Object.freeze({ sessions: 'sessions', customWorkouts: 'customWorkouts', bodyweightEntries: 'bodyweightEntries' });
 const FALLBACK_PREFIX = 'apex.local.v1.';
 
 let databasePromise;
@@ -141,7 +141,7 @@ async function deleteRecord(storeName, id) {
   });
 }
 
-async function replaceAllStores({ sessions = [], customWorkouts = [] }) {
+async function replaceAllStores({ sessions = [], customWorkouts = [], bodyweightEntries = [] }) {
   const prepared = {
     [STORES.sessions]: sessions.map((row) => ({
       ...row,
@@ -152,6 +152,11 @@ async function replaceAllStores({ sessions = [], customWorkouts = [] }) {
       ...row,
       id: row.id || makeId('routine'),
       created_date: row.created_date || new Date().toISOString(),
+    })),
+    [STORES.bodyweightEntries]: bodyweightEntries.map((row) => ({
+      ...row,
+      id: row.id || makeId('weight'),
+      created_date: row.created_date || row.date || new Date().toISOString(),
     })),
   };
   const db = await openDatabase();
@@ -200,6 +205,30 @@ export async function deleteAllSessions() {
   return clearStore(STORES.sessions);
 }
 
+
+export async function listBodyweightEntries() {
+  return sortOldestFirst(await readAll(STORES.bodyweightEntries), 'date');
+}
+
+export async function createBodyweightEntry(data) {
+  const weightKg = Number(data?.weightKg);
+  if (!Number.isFinite(weightKg) || weightKg <= 0) throw new Error('Enter a valid bodyweight.');
+  const date = data.date || new Date().toISOString();
+  const dayKey = new Date(date).toISOString().slice(0, 10);
+  return putRecord(STORES.bodyweightEntries, {
+    ...data,
+    id: data.id || `weight_${dayKey}`,
+    date,
+    weightKg: Number(weightKg.toFixed(2)),
+    source: data.source || 'manual',
+    created_date: data.created_date || new Date().toISOString(),
+  });
+}
+
+export async function deleteAllBodyweightEntries() {
+  return clearStore(STORES.bodyweightEntries);
+}
+
 export async function listCustomWorkouts() {
   return sortOldestFirst(await readAll(STORES.customWorkouts));
 }
@@ -221,7 +250,7 @@ export async function deleteAllCustomWorkouts() {
   return clearStore(STORES.customWorkouts);
 }
 
-export async function replaceAllTrainingData({ sessions = [], customWorkouts = [] } = {}) {
+export async function replaceAllTrainingData({ sessions = [], customWorkouts = [], bodyweightEntries = [] } = {}) {
   if (!Array.isArray(sessions) || !Array.isArray(customWorkouts)) {
     throw new Error('Backup file has an invalid data structure.');
   }
@@ -232,11 +261,14 @@ export async function replaceAllTrainingData({ sessions = [], customWorkouts = [
   if (customWorkouts.some((row) => !row || typeof row !== 'object' || !Array.isArray(row.exercises))) {
     throw new Error('Backup contains an invalid custom workout.');
   }
-  await replaceAllStores({ sessions, customWorkouts });
+  if (!Array.isArray(bodyweightEntries) || bodyweightEntries.some((row) => !row || typeof row !== 'object' || !Number.isFinite(Number(row.weightKg)) || Number(row.weightKg) <= 0)) {
+    throw new Error('Backup contains an invalid bodyweight entry.');
+  }
+  await replaceAllStores({ sessions, customWorkouts, bodyweightEntries });
 }
 
 export async function clearAllTrainingData() {
-  await Promise.all([deleteAllSessions(), deleteAllCustomWorkouts()]);
+  await Promise.all([deleteAllSessions(), deleteAllCustomWorkouts(), deleteAllBodyweightEntries()]);
 }
 
 export const LOCAL_DATA_INFO = Object.freeze({
