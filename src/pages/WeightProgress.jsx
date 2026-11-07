@@ -12,7 +12,7 @@ export default function WeightProgress() {
   const navigate = useNavigate();
   const unit = loadSettings().units || 'kg';
   const { data: entries = [] } = useBodyweightEntries();
-  const { mutateAsync: createEntry, isPending } = useCreateBodyweightEntry();
+  const { mutateAsync: createEntry } = useCreateBodyweightEntry();
   const [sheetOpen, setSheetOpen] = useState(false);
   const latest = entries[entries.length - 1];
   const fallback = Number(loadSettings().bodyweight) || (unit === 'lb' ? 154 : 70);
