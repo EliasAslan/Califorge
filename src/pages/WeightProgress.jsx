@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Scale } from 'lucide-react';
-import { loadSettings } from '@/lib/storage';
+import { loadSettings, saveSettings } from '@/lib/storage';
 import { useBodyweightEntries, useCreateBodyweightEntry } from '@/hooks/useTrainingData';
 import WeightWheelSheet from '@/components/workout/WeightWheelSheet';
 
@@ -29,6 +29,7 @@ export default function WeightProgress() {
       date: new Date().toISOString(),
       source: 'manual',
     });
+    saveSettings({ ...loadSettings(), bodyweight: Number(value.toFixed(1)) });
   };
 
   return (
