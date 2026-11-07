@@ -104,12 +104,31 @@ export default function Home() {
         </section>
       ) : doneToday ? (
         <>
-        <section className="apex-session-state apex-session-done">
-          <div className="flex items-start gap-3"><div className="apex-state-icon"><Check size={21} /></div><div className="min-w-0 flex-1"><p className="apex-overline">TODAY'S SESSION</p><h2 className="mt-1 text-xl font-bold">Done for today.</h2><p className="mt-1 text-sm text-muted-foreground">{todaySession.workoutName} · {completedCount(todaySession)} sets · {formatDuration(todaySession.durationSec) || '—'}</p></div></div>
-          <p className="mt-3 text-sm text-muted-foreground">Your plan stays on track. Pick it up at the next planned session.</p>
-          <Link to="/plan" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold">View plan <ArrowRight size={14} /></Link>
+        <section className="apex-session-state apex-session-done relative overflow-hidden">
+          <div className="flex items-start gap-3">
+            <div className="apex-state-icon"><Check size={21} strokeWidth={2.6} /></div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="apex-overline">SESSION SAVED</p>
+                <span className="h-px flex-1 bg-current opacity-15" />
+              </div>
+              <h2 className="mt-1.5 text-[1.65rem] font-bold leading-tight tracking-tight">That's today's work.</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{todaySession.workoutName}</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 divide-x divide-border/60 border-t border-border/60 pt-3">
+            <div className="pr-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Sets logged</p>
+              <p className="mt-1 text-lg font-bold tabular-nums">{completedCount(todaySession)}</p>
+            </div>
+            <div className="pl-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Time training</p>
+              <p className="mt-1 text-lg font-bold tabular-nums">{formatDuration(todaySession.durationSec) || '—'}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Take the win. A little recovery is plenty; the rest can wait until next time.</p>
         </section>
-        <RoutineCard key={todaySession.id || todaySession.date || 'today-cooldown'} title="Cooldown" subtitle="Bring your body back down after training." items={getRoutineForExercises(todaySession.exercises, COOLDOWNS)} routineKey={todaySession.id || todaySession.date || 'today-cooldown'} />
+        <RoutineCard key={todaySession.id || todaySession.date || 'today-cooldown'} title="Quick cooldown" subtitle="Choose one or two. No need to do everything." items={getRoutineForExercises(todaySession.exercises, COOLDOWNS).slice(0, 2)} routineKey={todaySession.id || todaySession.date || 'today-cooldown'} />
         </>
       ) : isRestDay ? (
         <>
@@ -223,10 +242,8 @@ function RoutineCard({ title, subtitle, items }) {
               />
               <span
                 aria-hidden="true"
-                className={`flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-full border text-[14px] font-medium leading-none transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background ${checked ? 'border-muted-foreground/50 bg-muted/70 text-muted-foreground' : 'border-muted-foreground/35 bg-muted/30 text-transparent group-hover/item:border-muted-foreground/65'}`}
-              >
-                ×
-              </span>
+                className={`routine-check h-[19px] w-[19px] shrink-0 rounded-full border transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background ${checked ? 'is-checked' : 'group-hover/item:border-muted-foreground/65'}`}
+              />
               <span className={checked ? 'min-w-0 flex-1 text-[12px] text-muted-foreground/65' : 'min-w-0 flex-1 text-[12px] text-foreground/90'}>{item.name}</span>
               <span className={checked ? 'shrink-0 text-[10px] text-muted-foreground/50' : 'shrink-0 text-[10px] text-muted-foreground'}>{item.detail}</span>
             </label>
