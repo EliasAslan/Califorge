@@ -215,7 +215,8 @@ export async function createBodyweightEntry(data) {
   const weightKg = Number(data?.weightKg);
   if (!Number.isFinite(weightKg) || weightKg <= 0) throw new Error('Enter a valid bodyweight.');
   const date = data.date || new Date().toISOString();
-  const dayKey = new Date(date).toISOString().slice(0, 10);
+  const localDate = new Date(date);
+  const dayKey = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
   return putRecord(STORES.bodyweightEntries, {
     ...data,
     id: data.id || `weight_${dayKey}`,
