@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { getExercise } from '@/lib/programData';
 import { formatTarget } from '@/lib/trainingLogic';
-import { playRestCompleteSound, vibrate } from '@/lib/workoutFeedback';
+import { playRestCountdownSound, playRestCompleteSound, vibrate } from '@/lib/workoutFeedback';
 
 export default function RestState({
   restEndsAt,
@@ -17,16 +17,27 @@ export default function RestState({
     Math.max(0, Math.ceil(((restEndsAt || Date.now()) - Date.now()) / 1000)),
   );
   const firedRef = useRef(false);
+  const previousRemainingRef = useRef(null);
 
   useEffect(() => {
     firedRef.current = false;
+    previousRemainingRef.current = null;
     const tick = () => {
       const seconds = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
       setRemaining(seconds);
+
+      // Fire once when crossing each second in the final five seconds.
+      if (seconds >= 1 && seconds <= 5 && seconds !== previousRemainingRef.current) {
+        playRestCountdownSound(seconds);
+        const pulse = seconds === 5 ? 18 : seconds === 4 ? 28 : 42;
+        vibrate([pulse]);
+      }
+      previousRemainingRef.current = seconds;
+
       if (seconds <= 0 && !firedRef.current) {
         firedRef.current = true;
         playRestCompleteSound();
-        vibrate([120, 60, 120]);
+        vibrate([110, 55, 110, 55, 190]);
         onDone();
       }
     };
