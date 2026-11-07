@@ -20,7 +20,7 @@ import { loadSettings, saveSettings, loadActiveSession, loadAllProgramWeeks, loa
 import { PROGRAM_LIST } from '@/lib/programData';
 import { ACCENT_LIST, applyAppearance } from '@/lib/appearance';
 import { useDeleteAllSessions, useDeleteAllCustomWorkouts } from '@/hooks/useTrainingData';
-import { listCustomWorkouts, listSessions, replaceAllTrainingData } from '@/lib/localDatabase';
+import { listCustomWorkouts, listSessions, listBodyweightEntries, replaceAllTrainingData, deleteAllBodyweightEntries } from '@/lib/localDatabase';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
 
@@ -67,7 +67,7 @@ export default function Profile() {
   const doExport = async () => {
     setExporting(true);
     try {
-      const [sessions, customWorkouts] = await Promise.all([listSessions(), listCustomWorkouts()]);
+      const [sessions, customWorkouts, bodyweightEntries] = await Promise.all([listSessions(), listCustomWorkouts(), listBodyweightEntries()]);
       const data = {
         app: 'APEX',
         formatVersion: 2,
@@ -125,7 +125,7 @@ export default function Profile() {
     if (!window.confirm('Delete all sessions, custom workouts, settings and local data? This cannot be undone.')) return;
     setClearing(true);
     try {
-      await Promise.all([deleteAllSessions(), deleteAllCustomWorkouts()]);
+      await Promise.all([deleteAllSessions(), deleteAllCustomWorkouts(), deleteAllBodyweightEntries()]);
       clearLocalData();
       const reset = loadSettings();
       setSettings(reset);
