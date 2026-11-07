@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSessions } from '@/hooks/useTrainingData';
-import { loadCurrentWeek } from '@/lib/storage';
+import { useSessions, useBodyweightEntries } from '@/hooks/useTrainingData';
+import { loadCurrentWeek, loadSettings } from '@/lib/storage';
 import { getActiveProgramId } from '@/lib/programData';
 import { getPhaseForWeek, getWeeklyFocus } from '@/lib/trainingLogic';
 import OverviewWidget from '@/components/progress/OverviewWidget';
@@ -10,8 +10,6 @@ import SkillsWidget from '@/components/progress/SkillsWidget';
 import MuscleBalanceWidget from '@/components/progress/MuscleBalanceWidget';
 import PRsWidget from '@/components/progress/PRsWidget';
 import WeightWidget from '@/components/progress/WeightWidget';
-import { useBodyweightEntries } from '@/hooks/useTrainingData';
-import { loadSettings } from '@/lib/storage';
 
 export default function Progress() {
   const navigate = useNavigate();
@@ -35,21 +33,21 @@ export default function Progress() {
         <p className="mt-1 text-sm text-muted-foreground">{focus.focus}</p>
       </header>
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-6 sm:gap-4">
+      <div className="grid grid-cols-6 gap-2.5 sm:gap-4">
         <OverviewWidget
           sessions={sessions}
           currentWeek={currentWeek}
           programId={programId}
           phase={phase}
           onClick={() => navigate('/progress/week')}
-          className="col-span-2 sm:col-span-6"
+          className="col-span-6"
         />
         <PhaseHistoryWidget
           sessions={sessions}
           currentWeek={currentWeek}
           programId={programId}
           onWeekClick={(week) => navigate(`/progress/phase?week=${week}`)}
-          className="col-span-2 sm:col-span-6"
+          className="col-span-2"
         />
         {isHypertrophy && (
           <MuscleBalanceWidget
@@ -57,7 +55,7 @@ export default function Progress() {
             currentWeek={currentWeek}
             programId={programId}
             onClick={() => navigate('/progress/muscle-balance')}
-            className="col-span-1 sm:col-span-3"
+            className="col-span-3"
           />
         )}
         <SkillsWidget
