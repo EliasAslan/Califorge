@@ -104,12 +104,12 @@ export default function Home() {
         </section>
       ) : doneToday ? (
         <>
-        <RoutineCard key={todaySession.id || todaySession.date || 'today-cooldown'} title="Cooldown" subtitle="Bring your body back down after training." items={getRoutineForExercises(todaySession.exercises, COOLDOWNS)} routineKey={todaySession.id || todaySession.date || 'today-cooldown'} />
         <section className="apex-session-state apex-session-done">
           <div className="flex items-start gap-3"><div className="apex-state-icon"><Check size={21} /></div><div className="min-w-0 flex-1"><p className="apex-overline">TODAY'S SESSION</p><h2 className="mt-1 text-xl font-bold">Done for today.</h2><p className="mt-1 text-sm text-muted-foreground">{todaySession.workoutName} · {completedCount(todaySession)} sets · {formatDuration(todaySession.durationSec) || '—'}</p></div></div>
           <p className="mt-3 text-sm text-muted-foreground">Your plan stays on track. Pick it up at the next planned session.</p>
           <Link to="/plan" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold">View plan <ArrowRight size={14} /></Link>
         </section>
+        <RoutineCard key={todaySession.id || todaySession.date || 'today-cooldown'} title="Cooldown" subtitle="Bring your body back down after training." items={getRoutineForExercises(todaySession.exercises, COOLDOWNS)} routineKey={todaySession.id || todaySession.date || 'today-cooldown'} />
         </>
       ) : isRestDay ? (
         <>
