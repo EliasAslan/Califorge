@@ -1,11 +1,9 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { categoryColor } from '@/lib/programData';
 import { getSkillTracksStatus } from '@/lib/skills';
 import ExerciseVisual from '@/components/ExerciseVisual';
 
 export default function SkillsWidget({ sessions, onClick, className }) {
-  const accent = categoryColor('pull');
   const tracks = getSkillTracksStatus(sessions);
 
   return (
