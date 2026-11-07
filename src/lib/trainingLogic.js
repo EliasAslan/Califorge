@@ -644,7 +644,9 @@ export const countPersonalRecords = (sessions) => getAllPersonalRecords(sessions
 // ── Program-scoped helpers (phase switching + completion) ─────────────────────
 export const getProgramSessions = (sessions, programId) => {
   const ids = new Set(Object.keys(getProgramWorkouts(programId)));
-  return sessions.filter((s) => ids.has(s.workoutId));
+  return sessions.filter((session) =>
+    ids.has(session.workoutId) && (!session.programId || session.programId === programId)
+  );
 };
 
 // A cycle week should require exposure to most of the program, not perfect
