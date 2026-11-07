@@ -22,22 +22,22 @@ export default function WeightWidget({ entries = [], unit = 'kg', onClick, class
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[126px] w-full flex-col rounded-2xl border border-border/70 bg-card/45 p-3.5 text-left transition-colors hover:bg-card/75 active:scale-[0.99] ${className}`}
+      className={`flex min-h-[126px] w-full flex-col rounded-2xl border border-border/70 bg-card/45 p-2.5 text-left transition-colors hover:bg-card/75 active:scale-[0.99] ${className}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"><Scale size={13} /> Bodyweight</span>
+        <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"><Scale size={13} /> Bodyweight</span>
         <ChevronRight size={15} className="text-muted-foreground" />
       </div>
       {latest ? (
         <div className="mt-auto flex items-end justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[23px] font-bold leading-none tracking-tight tabular-nums">{currentValue.toFixed(1)} <span className="text-[11px] font-semibold text-muted-foreground">{unit}</span></p>
-            <p className="mt-1.5 text-[10px] text-muted-foreground">
+            <p className="text-[20px] font-bold leading-none tracking-tight tabular-nums">{currentValue.toFixed(1)} <span className="text-[11px] font-semibold text-muted-foreground">{unit}</span></p>
+            <p className="mt-1.5 text-[9px] text-muted-foreground">
               {change == null ? 'First entry' : `${change > 0 ? '+' : ''}${change.toFixed(1)} ${unit} since last`}
             </p>
           </div>
           {points.length > 1 && (
-            <svg viewBox="0 0 100 40" className="h-10 w-[76px] shrink-0 overflow-visible" aria-label="Recent bodyweight trend">
+            <svg viewBox="0 0 100 40" className="h-8 w-[60px] shrink-0 overflow-visible" aria-label="Recent bodyweight trend">
               <polyline points={coords} fill="none" stroke="hsl(var(--foreground))" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
