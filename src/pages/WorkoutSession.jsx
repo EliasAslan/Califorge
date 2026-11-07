@@ -939,16 +939,21 @@ export default function WorkoutSession() {
                   const isCurrent = index === targetCursor.setIndex;
                   const state = rowSet.completed ? 'is-past' : '';
                   return (
-                    <div
+                    <button
                       key={rowSet.id || index}
+                      type="button"
                       className={`console-ladder-step ${state} ${isCurrent ? 'is-current' : ''}`}
+                      aria-label={`Go to set ${index + 1}${rowSet.completed ? ', completed' : ''}`}
                       aria-current={isCurrent ? 'step' : undefined}
+                      aria-pressed={isCurrent}
+                      disabled={paused}
+                      onClick={() => selectSetInList(targetCursor.exerciseIndex, index)}
                     >
-                      <div className="console-ladder-bar" />
+                      <span className="console-ladder-bar" />
                       <span className="console-ladder-label">
                         {rowSet.completed ? 'Done' : `Set ${index + 1}`}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
