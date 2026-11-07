@@ -70,9 +70,10 @@ export default function Profile() {
       const [sessions, customWorkouts, bodyweightEntries] = await Promise.all([listSessions(), listCustomWorkouts(), listBodyweightEntries()]);
       const data = {
         app: 'APEX',
-        formatVersion: 2,
+        formatVersion: 3,
         sessions,
         customWorkouts,
+        bodyweightEntries,
         settings: loadSettings(),
         programWeeks: loadAllProgramWeeks(),
         programCycleStarts: loadProgramCycleStarts(),
@@ -86,7 +87,7 @@ export default function Profile() {
       anchor.download = `apex-backup-${new Date().toISOString().slice(0, 10)}.json`;
       anchor.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
-      toast({ title: 'Backup exported', description: `${sessions.length} sessions and ${customWorkouts.length} routines saved.` });
+      toast({ title: 'Backup exported', description: `${sessions.length} sessions, ${customWorkouts.length} routines and ${bodyweightEntries.length} weigh-ins saved.` });
     } catch (error) {
       toast({ title: 'Backup failed', description: error.message || 'Could not read local training data.', variant: 'destructive' });
     } finally {
