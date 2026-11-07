@@ -9,6 +9,7 @@ import { queryClientInstance } from '@/lib/query-client';
 import { loadSettings } from '@/lib/storage';
 import Home from '@/pages/Home';
 import Progress from '@/pages/Progress';
+import WeightProgress from '@/pages/WeightProgress';
 import WeekDetail from '@/pages/WeekDetail';
 import PhaseDetail from '@/pages/PhaseDetail';
 import SkillTree from '@/pages/SkillTree';
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="/progress/habits" element={<HabitsDetail />} />
         <Route path="/progress/muscle-balance" element={<MuscleBalanceDetail />} />
         <Route path="/progress/records" element={<PersonalRecords />} />
+        <Route path="/progress/weight" element={<WeightProgress />} />
         <Route path="/progress/exercise/:id" element={<ExerciseDetail />} />
         <Route path="/history" element={<History />} />
         <Route path="/history/:id" element={<SessionDetail />} />
