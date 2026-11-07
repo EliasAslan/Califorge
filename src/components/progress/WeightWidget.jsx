@@ -37,7 +37,7 @@ export default function WeightWidget({ entries = [], unit = 'kg', onClick, class
             </p>
           </div>
           {points.length > 1 && (
-            <svg viewBox="0 0 100 40" className="h-8 w-[60px] shrink-0 overflow-visible" aria-label="Recent bodyweight trend">
+            <svg viewBox="0 0 100 40" className="hidden h-8 w-[60px] shrink-0 overflow-visible sm:block" aria-label="Recent bodyweight trend">
               <polyline points={coords} fill="none" stroke="hsl(var(--foreground))" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
