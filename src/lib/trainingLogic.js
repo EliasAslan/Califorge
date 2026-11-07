@@ -139,7 +139,7 @@ const buildExerciseEntry = (exId, mode, deload, timeBudgetMin = null) => {
 export const buildSession = (workoutId, week, mode = 'full', context = {}) => {
   const workout = getWorkout(workoutId);
   if (!workout) return null;
-  const deload = isDeloadWeek(week);
+  const deload = isDeloadWeek(week, context.programId);
   const exIds = Array.isArray(context.exerciseIds)
     ? context.exerciseIds
     : getModeExercises(workout, mode, context);
@@ -156,7 +156,7 @@ export const buildSession = (workoutId, week, mode = 'full', context = {}) => {
     timeBudgetMin: Number.isFinite(Number(context.timeBudgetMin)) && Number(context.timeBudgetMin) > 0 ? Number(context.timeBudgetMin) : null,
     // Keep the template's intended day label even when the athlete moves it
     // to a different calendar day or chooses it manually from Home.
-    dayLabel: getSchedule().find((day) => day.workoutId === workoutId)?.short || 'FLEX',
+    dayLabel: getSchedule(context.programId).find((day) => day.workoutId === workoutId)?.short || 'FLEX',
     startedAt: Date.now(),
     activeMs: 0,
     resumeAt: Date.now(),
@@ -172,7 +172,7 @@ export const buildSession = (workoutId, week, mode = 'full', context = {}) => {
 
 // ── Build a session from an arbitrary list of exercise ids (custom workouts) ──
 export const buildCustomSession = (name, exerciseIds, week, mode = 'full', programId = getActiveProgramId()) => {
-  const deload = isDeloadWeek(week);
+  const deload = isDeloadWeek(week, programId);
   const exercises = exerciseIds.map((id) => buildExerciseEntry(id, mode, deload)).filter(Boolean);
 
   return {
@@ -681,7 +681,7 @@ export const getCurrentCycleSessions = (sessions, programId) => {
   for (let index = 1; index < programSessions.length; index += 1) {
     const previousWeek = Number(programSessions[index - 1].week);
     const nextWeek = Number(programSessions[index].week);
-    if (Number.isFinite(previousWeek) && Number.isFinite(nextWeek) && nextWeek < previousWeek) {
+    if (Number.isFinite(previousWeek) && Number.isFinite(nextWeek) && previousWeek >= 7 && nextWeek === 1) {
       latestCycleStart = index;
     }
   }
