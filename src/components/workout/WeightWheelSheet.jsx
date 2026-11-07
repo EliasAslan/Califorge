@@ -12,8 +12,8 @@ function WheelColumn({ label, values, value, initialValue, onChange, open }) {
   const index = Math.max(0, values.indexOf(value));
 
   useEffect(() => {
-    if (ref.current) ref.current.scrollTop = index * ITEM_H;
-  }, [index, values]);
+    if (open && ref.current) ref.current.scrollTop = Math.max(0, values.indexOf(initialValue)) * ITEM_H;
+  }, [open, initialValue]);
 
   useEffect(() => () => clearTimeout(settle.current), []);
 
@@ -74,6 +74,8 @@ export default function WeightWheelSheet({ open, onOpenChange, value, unit = 'kg
   const initial = Number.isFinite(Number(value)) ? Number(value) : (unit === 'lb' ? 154 : 70);
   const [whole, setWhole] = useState(Math.floor(initial));
   const [decimal, setDecimal] = useState(Math.round((initial - Math.floor(initial)) * 10) % 10);
+  const initialWhole = Math.min(maxWhole, Math.max(minWhole, Math.floor(initial)));
+  const initialDecimal = Math.round((initial - Math.floor(initial)) * 10) % 10;
 
   useEffect(() => {
     if (!open) return;
