@@ -39,7 +39,9 @@ export default function WorkoutSummary() {
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
   const [weightLogged, setWeightLogged] = useState(false);
   const { data: sessions = [] } = useSessions();
+  const { data: bodyweightEntries = [] } = useBodyweightEntries();
   const { mutateAsync: createSession } = useCreateSession();
+  const { mutateAsync: createBodyweightEntry } = useCreateBodyweightEntry();
   useConsoleChrome();
 
   useEffect(() => {
