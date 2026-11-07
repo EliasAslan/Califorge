@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { CATEGORIES, getExercise, getWeeks } from '@/lib/programData';
-import { getProgramSessions, getPhaseForWeek } from '@/lib/trainingLogic';
+import { getCurrentCycleSessions, getPhaseForWeek } from '@/lib/trainingLogic';
 import { loadCurrentWeek } from '@/lib/storage';
 import { getActiveProgramId } from '@/lib/programData';
 import { useSessions } from '@/hooks/useTrainingData';
@@ -15,7 +15,7 @@ export default function MuscleBalanceDetail() {
   const programId = getActiveProgramId();
   const currentWeek = loadCurrentWeek(programId);
   const weeks = getWeeks(programId);
-  const programSessions = getProgramSessions(sessions, programId);
+  const programSessions = getCurrentCycleSessions(sessions, programId);
 
   const totals = weeks.map((w) => {
     const ws = programSessions.filter((s) => s.week === w.week);
