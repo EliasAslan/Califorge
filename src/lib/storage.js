@@ -37,6 +37,12 @@ export const loadActiveSession = () => {
   const now = Date.now();
   if (s.resumeAt && !s.paused && s.lastActivityAt && (now - s.lastActivityAt) > STALE_MS) {
     s.activeMs = (s.activeMs || 0) + Math.max(0, s.lastActivityAt - s.resumeAt);
+    const activeExercise = s.exercises?.[s.cursor?.exerciseIndex ?? 0];
+    if (activeExercise?.timingStartedAt) {
+      activeExercise.durationMs = (activeExercise.durationMs || 0)
+        + Math.max(0, s.lastActivityAt - activeExercise.timingStartedAt);
+      activeExercise.timingStartedAt = null;
+    }
     s.resumeAt = null;
     s.paused = true;
     set('activeSession', s);
