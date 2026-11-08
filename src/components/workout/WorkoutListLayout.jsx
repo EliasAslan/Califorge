@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Check, Pause, Play, ArrowUp, ArrowDown } from 'lucide-react';
+import { Check, Pause, Play, ArrowUp, ArrowDown, Plus, Trash2 } from 'lucide-react';
 import SetInputs, { missingFields, EffortRow } from '@/components/workout/SetInputs';
 import { getExercise, categoryColor } from '@/lib/programData';
 import { formatTarget } from '@/lib/trainingLogic';
@@ -33,6 +33,8 @@ export default function WorkoutListLayout({
   onSkipAt,
   reorderMode = false,
   onMoveExercise,
+  onAddSet,
+  onRemoveSet,
   togglePause,
   renderTopBar,
   missingAt,
@@ -167,12 +169,12 @@ export default function WorkoutListLayout({
                       : `Set ${setIndex + 1}`;
 
                   return (
-                    <div key={rowSet.id || setIndex}>
+                    <div key={rowSet.id || setIndex} className="flex items-stretch gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleRow(exerciseIndex, setIndex)}
                         aria-expanded={isExpanded}
-                        className={`console-list-row ${isCurrent ? 'is-current' : ''}`}
+                        className={`console-list-row min-w-0 flex-1 ${isCurrent ? 'is-current' : ''}`}
                       >
                         <span
                           className={`console-list-index ${isDone ? 'is-done' : ''} ${isCurrent ? 'is-current' : ''}`}
@@ -191,6 +193,18 @@ export default function WorkoutListLayout({
                           {isExpanded ? 'Close' : isDone ? 'Edit' : 'Log'}
                         </span>
                       </button>
+                      {reorderMode && (
+                        <button
+                          type="button"
+                          aria-label={`Delete set ${setIndex + 1} from ${exercise.name}`}
+                          title="Delete set"
+                          disabled={exercise.sets.length <= 1}
+                          onClick={() => onRemoveSet?.(exerciseIndex, setIndex)}
+                          className="flex h-12 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--console-line)] text-[var(--console-steel)] transition-colors hover:border-[#D96C6C] hover:text-[#D96C6C] disabled:opacity-25"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
 
                       <div
                         className={'console-list-editor-wrap ' + (isExpanded ? 'is-open' : '')}
@@ -255,6 +269,15 @@ export default function WorkoutListLayout({
                   );
                 })}
               </div>
+              {reorderMode && (
+                <button
+                  type="button"
+                  onClick={() => onAddSet?.(exerciseIndex)}
+                  className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[var(--console-line)] text-[11px] font-semibold text-[var(--console-steel)] transition-colors hover:border-[var(--console-steel)] hover:text-[var(--console-chalk)]"
+                >
+                  <Plus size={14} /> Add set
+                </button>
+              )}
             </section>
           );
         })}
