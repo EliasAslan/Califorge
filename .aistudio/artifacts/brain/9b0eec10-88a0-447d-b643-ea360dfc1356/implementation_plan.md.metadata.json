@@ -1,0 +1,6 @@
+{
+  "summary":  "Revised implementation plan incorporating the user's preference to keep the exercise visual positioned as a high-visibility watermark behind the title in active workouts, with an architecture prepared to toggle to the hero badge layout if needed.",
+  "updatedAt":  "2026-11-08T16:23:32.307246850Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
