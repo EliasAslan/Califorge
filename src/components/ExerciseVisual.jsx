@@ -175,9 +175,11 @@ const POSES = {
     <>
       <Floor y={165} />
       <Ring x={66} y={132} topY={20} />
+      <Ring x={134} y={132} topY={20} />
       <g stroke={c} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        {/* Hand on ring -> elbow -> shoulder */}
+        {/* Both hands hold separate rings; elbows stay under the shoulders */}
         <path d="M66 132 L64 118 L66 102" />
+        <path d="M134 132 L136 118 L134 102" />
         <Head cx={48} cy={94} color={c} />
         <path d="M66 102 L114 124 L142 145 L168 165" />
         <path d="M66 102 L114 126 L142 147 L168 165" opacity="0.55" />
@@ -286,10 +288,13 @@ const POSES = {
       <g opacity="0.5" stroke="currentColor">
         <line x1="72" y1="15" x2="78" y2="72" strokeWidth={1.8} strokeLinecap="round" />
         <circle cx="78" cy="80" r="8" strokeWidth={2.6} />
+        <line x1="128" y1="15" x2="122" y2="72" strokeWidth={1.8} strokeLinecap="round" />
+        <circle cx="122" cy="80" r="8" strokeWidth={2.6} />
       </g>
       <g stroke={c} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        {/* Hand at ring -> elbow driven back -> shoulder */}
-        <path d="M78 80 L104 96 L92 90" />
+        {/* Both hands row to separate rings; torso stays braced in a straight diagonal */}
+        <path d="M78 80 L92 98 L100 104" />
+        <path d="M122 80 L108 98 L100 104" />
         <Head cx={82} cy={74} color={c} />
         <path d="M92 90 L122 126 L160 170" />
         <path d="M92 90 L124 128 L160 170" opacity="0.55" />
