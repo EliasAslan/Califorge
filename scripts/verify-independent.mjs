@@ -10,8 +10,20 @@ const allDependencies = {
 };
 const dependencyNames = Object.keys(allDependencies);
 assert.equal(dependencyNames.some((name) => name.startsWith('@base44/')), false, 'Base44 packages must not be installed');
+const restrictedServicePrefixes = [
+  'firebase',
+  '@firebase/',
+  'google-auth-library',
+  'googleapis',
+  '@google-cloud/',
+  '@google/generative-ai',
+  '@google/genai',
+  'openai',
+  '@openai/',
+  '@anthropic-ai/',
+];
 assert.equal(
-  dependencyNames.some((name) => /^(firebase|@firebase\\/|google-auth-library|googleapis|@google-cloud\\/|@google\\/generative-ai|@google\\/genai|openai|@openai\\/|@anthropic-ai\\/)/.test(name)),
+  dependencyNames.some((name) => restrictedServicePrefixes.some((prefix) => name === prefix || name.startsWith(prefix))),
   false,
   'Google/Firebase and hosted AI SDKs must not be required by the standalone app',
 );
