@@ -75,6 +75,7 @@ export default function WorkoutSession() {
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState('replace');
   const [reorderMode, setReorderMode] = useState(false);
+  const [layoutBeforeReorder, setLayoutBeforeReorder] = useState(null);
   const [exerciseQuery, setExerciseQuery] = useState('');
   const [, setIncrementTick] = useState(0);
   const [stageAnimate, setStageAnimate] = useState(false);
@@ -391,10 +392,6 @@ export default function WorkoutSession() {
     setSession((prev) => {
       const next = structuredClone(prev);
       const now = Date.now();
-      stopExerciseClock(next, next.cursor?.exerciseIndex ?? 0, now);
-      if (next.pendingNext && next.pendingNext.exerciseIndex !== next.cursor?.exerciseIndex) {
-        stopExerciseClock(next, next.pendingNext.exerciseIndex, now);
-      }
       const setCount = Math.max(1, Number(definition.sets) || 3);
       const sets = Array.from({ length: setCount }, (_, index) => ({
         id: `added_${now}_${index}`,
@@ -429,14 +426,10 @@ export default function WorkoutSession() {
         progression: null,
         note: '',
         durationMs: 0,
-        timingStartedAt: now,
+        timingStartedAt: null,
         sets,
       });
-      const exerciseIndex = next.exercises.length - 1;
-      next.cursor = { exerciseIndex, setIndex: 0 };
-      next.phase = 'work';
-      next.restEndsAt = null;
-      next.pendingNext = null;
+      // Append without interrupting the exercise currently in progress.
       next.lastActivityAt = now;
       return next;
     });
@@ -830,8 +823,15 @@ export default function WorkoutSession() {
                   type="button"
                   role="menuitem"
                   onClick={() => {
-                    setLayout('list');
-                    setReorderMode((value) => !value);
+                    if (reorderMode) {
+                      setReorderMode(false);
+                      if (layoutBeforeReorder) setLayout(layoutBeforeReorder);
+                      setLayoutBeforeReorder(null);
+                    } else {
+                      setLayoutBeforeReorder(layout);
+                      setLayout('list');
+                      setReorderMode(true);
+                    }
                     setShowMenu(false);
                   }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
