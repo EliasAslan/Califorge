@@ -8,14 +8,15 @@ import { pathToFileURL } from 'node:url';
 // relative imports explicit. This avoids needing a browser or remote account.
 const sourceRoot = path.resolve('src/lib');
 const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'apex-training-test-'));
-const modules = ['storage.js', 'appearance.js', 'programData.js', 'trainingLogic.js'];
+const modules = ['storage.js', 'appearance.js', 'exerciseAdaptations.js', 'programData.js', 'trainingLogic.js'];
 try {
   for (const file of modules) {
     let source = await fs.readFile(path.join(sourceRoot, file), 'utf8');
     source = source
       .replaceAll("'./storage'", "'./storage.mjs'")
       .replaceAll("'./appearance'", "'./appearance.mjs'")
-      .replaceAll("'./programData'", "'./programData.mjs'");
+      .replaceAll("'./programData'", "'./programData.mjs'")
+      .replaceAll("'./exerciseAdaptations'", "'./exerciseAdaptations.mjs'");
     const outputName = file.replace(/\.js$/, '.mjs');
     await fs.writeFile(path.join(tempRoot, outputName), source);
   }
@@ -30,6 +31,7 @@ try {
   const logic = await import(pathToFileURL(path.join(tempRoot, 'trainingLogic.mjs')));
   const programs = await import(pathToFileURL(path.join(tempRoot, 'programData.mjs')));
   const storage = await import(pathToFileURL(path.join(tempRoot, 'storage.mjs')));
+  const adaptations = await import(pathToFileURL(path.join(tempRoot, 'exerciseAdaptations.mjs')));
   const completedSession = (workoutId, week = 1, date = '2026-10-01T12:00:00.000Z') => ({
     workoutId,
     workoutName: programs.getWorkout(workoutId)?.name || workoutId,
@@ -65,6 +67,121 @@ try {
   assert.ok(twentyFive.includes('pa_handstand'));
   assert.ok(twentyFive.includes('pa_hspu'));
   assert.ok(logic.estimateExercisesDuration(twentyFive, 1, 25) <= 25);
+
+  // The same planner drives the estimate and the session plan. Longer
+  // budgets add useful volume without spilling over the selected duration.
+  const forty = logic.planWorkoutForTimeBudget(pushA, 1, 40, { equipment: storage.loadSettings().equipment });
+  const sixty = logic.planWorkoutForTimeBudget(pushA, 1, 60, { equipment: storage.loadSettings().equipment });
+  assert.ok(forty.exercisePlan.length > 0);
+  assert.ok(forty.estimatedMinutes <= 40);
+  assert.ok(sixty.estimatedMinutes <= 60);
+  assert.ok(sixty.estimatedMinutes > forty.estimatedMinutes);
+  assert.ok(
+    sixty.exercisePlan.length > forty.exercisePlan.length
+      || sixty.exercisePlan.reduce((sum, item) => sum + item.sets, 0) > forty.exercisePlan.reduce((sum, item) => sum + item.sets, 0),
+    'A longer budget should add exercises or sets',
+  );
+
+  const timedHistory = [
+    { date: '2026-10-01', exercises: [{ exerciseId: 'pa_handstand', durationMs: 180000, sets: [{ completed: true, skipped: false }, { completed: true, skipped: false }] }] },
+    { date: '2026-10-08', exercises: [{ exerciseId: 'pa_handstand', durationMs: 180000, sets: [{ completed: true, skipped: false }, { completed: true, skipped: false }] }] },
+    { date: '2026-10-15', exercises: [{ exerciseId: 'pa_handstand', durationMs: 900000, sets: [{ completed: true, skipped: false }, { completed: true, skipped: false }] }] },
+  ];
+  assert.deepEqual(logic.getPersonalExerciseSecondsPerSet('pa_handstand', timedHistory), { seconds: 90, sampleCount: 3 });
+  assert.equal(logic.getPersonalExerciseSecondsPerSet('pa_handstand', [timedHistory[0]]), null);
+
+  // A floor-only travel setup should never receive movements that still
+  // require unavailable gear. Alternative resolution must also avoid duplicate
+  // substitute movements when multiple originals map to the same fallback.
+  const allScheduledExerciseIds = [...new Set(Object.values(programs.PROGRAMS)
+    .flatMap((program) => Object.values(program.workouts).flatMap((workout) => workout.exercises)))];
+  for (const exerciseId of allScheduledExerciseIds) {
+    const alternatives = adaptations.getExerciseAlternativeIds(exerciseId);
+    assert.ok(alternatives.length > 0, `Missing alternatives for ${exerciseId}`);
+    assert.ok(alternatives.every((alternativeId) => programs.getExercise(alternativeId)), `Unresolved alternative for ${exerciseId}`);
+  }
+
+  const customFloorPlan = logic.getEquipmentCompatibleExercisePlan(
+    ['pa_ringdips', 'pa_planche', 'pa_handstand', 'pb_pppu', 'h_deep_pp_pushup'],
+    ['Floor'],
+    'full',
+    1,
+  );
+  assert.ok(customFloorPlan.every((item) => adaptations.isExerciseEquipmentAvailable(item.id, ['Floor'])));
+  assert.equal(customFloorPlan.length, new Set(customFloorPlan.map((item) => item.id)).size);
+  assert.deepEqual(customFloorPlan.map((item) => item.id), [
+    'alt_close_grip_pushup',
+    'alt_planche_lean_floor',
+    'pa_handstand',
+    'pb_pppu',
+    'alt_pushup',
+  ]);
+
+  const pullB = programs.getWorkout('pull_b');
+  const floorOnly = logic.planWorkoutForTimeBudget(pullB, 1, 60, { equipment: ['Floor'] });
+  assert.ok(floorOnly.exercisePlan.length > 0);
+  assert.equal(floorOnly.exerciseIds.length, new Set(floorOnly.exerciseIds).size);
+  assert.ok(floorOnly.exercisePlan.every((item) => adaptations.isExerciseEquipmentAvailable(item.id, ['Floor'])));
+  assert.ok(floorOnly.exerciseIds.includes('alt_prone_lat_hold'));
+
+  // Planned substitutions retain the source movement for future variation
+  // choices, while the session uses the alternative's actual training model.
+  const substituted = logic.buildSession('push_a', 1, 'full', {
+    programId: 'skill',
+    exercisePlan: [{ id: 'alt_planche_lean_floor', originalId: 'pa_planche', sets: 2 }],
+    timeBudgetMin: 40,
+  });
+  assert.equal(substituted.exercises[0].exerciseId, 'alt_planche_lean_floor');
+  assert.equal(substituted.exercises[0].originalId, 'pa_planche');
+  assert.equal(substituted.exercises[0].sets.length, 2);
+
+  // Progress records and notable-improvement summaries must include the
+  // actual alternative movement performed, rather than only template IDs.
+  const alternativeHistory = [
+    {
+      workoutId: 'push_a',
+      programId: 'skill',
+      week: 1,
+      date: '2026-10-01T12:00:00.000Z',
+      exercises: [{
+        exerciseId: 'alt_planche_lean_floor',
+        sets: [{ completed: true, skipped: false, actualSec: 8 }],
+      }],
+    },
+    {
+      workoutId: 'push_a',
+      programId: 'skill',
+      week: 1,
+      date: '2026-10-08T12:00:00.000Z',
+      exercises: [{
+        exerciseId: 'alt_planche_lean_floor',
+        sets: [{ completed: true, skipped: false, actualSec: 15 }],
+      }],
+    },
+  ];
+  const alternativeRecord = logic.getAllPersonalRecords(alternativeHistory)
+    .find((record) => record.exerciseId === 'alt_planche_lean_floor');
+  assert.equal(alternativeRecord?.record.value, 15);
+  const alternativeImprovement = logic.getProgramImprovements(alternativeHistory, 'skill')
+    .find((item) => item.exerciseId === 'alt_planche_lean_floor');
+  assert.deepEqual(
+    { from: alternativeImprovement?.from, to: alternativeImprovement?.to, delta: alternativeImprovement?.delta },
+    { from: 8, to: 15, delta: 7 },
+  );
+
+  // Changing one exercise's load updates every pending set but preserves
+  // completed history and can still edit an already-completed set alone.
+  const weightedEntry = {
+    sets: [
+      { completed: true, skipped: false, weight: 5 },
+      { completed: false, skipped: false, weight: null },
+      { completed: false, skipped: false, weight: null },
+    ],
+  };
+  const loadedEntry = logic.applyLoadToExerciseSets(weightedEntry, 1, 10);
+  assert.deepEqual(loadedEntry.sets.map((set) => set.weight), [5, 10, 10]);
+  const editedCompleted = logic.applyLoadToExerciseSets(loadedEntry, 0, 7);
+  assert.deepEqual(editedCompleted.sets.map((set) => set.weight), [7, 10, 10]);
 
   // Short mode trims one working set (except skill/prehab) while preserving
   // the normal exercise definition and target values.
@@ -108,6 +225,7 @@ try {
   ];
   assert.equal(logic.getPhaseCompletion(weekEight, 8, 'skill').complete, true);
   assert.equal(logic.getRequiredWorkoutsPerWeek('hypertrophy'), 3);
+  // The cycle-aware filter must be at Week 8 before checking Week 8 history.
   storage.saveCurrentWeek(8, 'hypertrophy');
   assert.equal(logic.getPhaseCompletion([completedSession('upper_a', 8), completedSession('upper_b', 8), completedSession('lower_a', 8)], 8, 'hypertrophy').complete, true);
   assert.equal(logic.getPhaseCompletion([completedSession('upper_a', 8), completedSession('upper_b', 8)], 8, 'hypertrophy'), null);

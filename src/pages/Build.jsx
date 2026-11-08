@@ -6,9 +6,10 @@ import {
   Plus, Search, X, Play, Trash2, ChevronRight, ChevronUp, ChevronDown,
   Check, Dumbbell, ListOrdered, SearchX,
 } from 'lucide-react';
-import { LIBRARY_EXERCISES, LIBRARY_CATEGORIES, CATEGORIES, categoryColor } from '@/lib/programData';
-import { buildCustomSession } from '@/lib/trainingLogic';
-import { loadCurrentWeek, saveActiveSession } from '@/lib/storage';
+import { LIBRARY_EXERCISES, LIBRARY_CATEGORIES, CATEGORIES, categoryColor, getActiveProgramId } from '@/lib/programData';
+import { buildCustomSession, getEquipmentCompatibleExercisePlan } from '@/lib/trainingLogic';
+import { loadCurrentWeek, saveActiveSession, loadSettings } from '@/lib/storage';
+import { isExerciseEquipmentAvailable } from '@/lib/exerciseAdaptations';
 import { useCustomWorkouts, useCreateCustomWorkout, useDeleteCustomWorkout } from '@/hooks/useTrainingData';
 import ExerciseVisual from '@/components/ExerciseVisual';
 import { toast } from '@/components/ui/use-toast';
@@ -18,23 +19,33 @@ export default function Build() {
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('all');
   const [building, setBuilding] = useState(false);
+  const [equipment] = useState(() => loadSettings().equipment || []);
   const { data: custom = [] } = useCustomWorkouts();
   const { mutate: deleteWorkout } = useDeleteCustomWorkout();
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return LIBRARY_EXERCISES.filter((exercise) => {
+      if (!isExerciseEquipmentAvailable(exercise.id, equipment)) return false;
       if (cat !== 'all' && exercise.category !== cat) return false;
       return !needle || `${exercise.name} ${exercise.variation} ${exercise.difficulty}`.toLowerCase().includes(needle);
     });
-  }, [cat, query]);
+  }, [cat, query, equipment]);
 
   const startCustom = (workout) => {
     if (!workout.exercises?.length) {
       toast({ title: 'This workout is empty', description: 'Create a new workout with at least one exercise.' });
       return;
     }
-    const session = buildCustomSession(workout.name, workout.exercises, loadCurrentWeek());
+    const week = loadCurrentWeek();
+    const equipmentPlan = getEquipmentCompatibleExercisePlan(workout.exercises, equipment, 'full', week);
+    if (!equipmentPlan.length) {
+      toast({ title: 'No compatible exercises', description: 'Enable equipment you have or choose other movements in your custom workout.' });
+      return;
+    }
+    const session = buildCustomSession(workout.name, equipmentPlan.map((item) => item.id), week, 'full', getActiveProgramId(), {
+      exercisePlan: equipmentPlan,
+    });
     saveActiveSession(session);
     triggerFeedback('workoutStart');
     navigate('/workout');
@@ -162,7 +173,7 @@ export default function Build() {
         )}
       </section>
 
-      {building && <Builder onClose={() => setBuilding(false)} onSaved={() => setBuilding(false)} />}
+      {building && <Builder equipment={equipment} onClose={() => setBuilding(false)} onSaved={() => setBuilding(false)} />}
     </div>
   );
 }
@@ -181,7 +192,7 @@ function Chip({ active, onClick, label, color }) {
   );
 }
 
-function Builder({ onClose, onSaved }) {
+function Builder({ onClose, onSaved, equipment = [] }) {
   const [name, setName] = useState('');
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState('');
@@ -202,9 +213,10 @@ function Builder({ onClose, onSaved }) {
   );
   const needle = query.trim().toLowerCase();
   const list = useMemo(() => LIBRARY_EXERCISES.filter((exercise) => {
+    if (!isExerciseEquipmentAvailable(exercise.id, equipment)) return false;
     if (cat !== 'all' && exercise.category !== cat) return false;
     return !needle || `${exercise.name} ${exercise.variation} ${exercise.difficulty}`.toLowerCase().includes(needle);
-  }), [cat, needle]);
+  }), [cat, needle, equipment]);
   const toggle = (id) => setSelected((current) => current.includes(id)
     ? current.filter((selectedId) => selectedId !== id)
     : [...current, id]);

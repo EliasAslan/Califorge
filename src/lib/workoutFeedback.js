@@ -25,8 +25,7 @@ const playTones = (notes) => {
   if (!context) return;
   try {
     const startAt = context.currentTime;
-    notes.forEach((note) => {
-      const { frequency, delay = 0, duration = 0.07, volume = 0.03, type = 'sine' } = note;
+    notes.forEach(({ frequency, delay = 0, duration = 0.07, volume = 0.03, type = 'sine' }) => {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
       const start = startAt + delay;

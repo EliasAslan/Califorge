@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { triggerFeedback } from '@/lib/workoutFeedback';
 import { ArrowRight, Check, ChevronDown, Clock, Dumbbell, Moon, Play, RotateCcw, Settings2, Trash2 } from 'lucide-react';
 import { getActiveProgram, getActiveProgramId, getExercise, getWorkout, getProgramWorkouts, categoryColor, WARMUPS, COOLDOWNS, RECOVERY } from '@/lib/programData';
-import { getPhaseForWeek, getWeekMeta, buildSession, buildCustomSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, getExercisesForTimeBudget, estimateExercisesDuration, getModeForTimeBudget } from '@/lib/trainingLogic';
-import { loadCurrentWeek, loadActiveSession, saveActiveSession, clearActiveSession, getEnjoyment, loadSettings } from '@/lib/storage';
+import { getPhaseForWeek, getWeekMeta, buildSession, buildCustomSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, planWorkoutForTimeBudget, getModeForTimeBudget } from '@/lib/trainingLogic';
+import { loadCurrentWeek, loadActiveSession, saveActiveSession, clearActiveSession, getEnjoyment, loadSettings, loadWarmupProgress, saveWarmupProgress } from '@/lib/storage';
 import { useCustomWorkouts, useSessions } from '@/hooks/useTrainingData';
 import { withViewTransition } from '@/lib/viewTransition';
 
@@ -33,7 +33,7 @@ export default function Home() {
   const timeBudget = Math.max(10, Math.min(120, Number(availableMinutes) || 30));
   const phase = getPhaseForWeek(week, programId);
   const weekMeta = getWeekMeta(week, programId);
-  const context = { sessions, enjoyment: getEnjoyment() };
+  const context = { sessions, enjoyment: getEnjoyment(), equipment: settings.equipment };
   const recommendation = getPlanLedWorkoutRecommendation(programId, now);
   const programWorkouts = getProgramWorkouts(programId);
   const selectedCustomWorkout = customWorkoutOverride
@@ -53,10 +53,11 @@ export default function Home() {
   const category = workout?.category || 'skill';
   const categoryAccent = categoryColor(category);
   const mode = getModeForTimeBudget(timeBudget);
-  const exerciseIds = workout?.isCustom
-    ? workout.exercises.filter((id) => getExercise(id))
-    : workout ? getExercisesForTimeBudget(workout, week, timeBudget, context) : [];
-  const duration = estimateExercisesDuration(exerciseIds, week, timeBudget);
+  const timePlan = workout
+    ? planWorkoutForTimeBudget(workout, week, timeBudget, context)
+    : { exercisePlan: [], exerciseIds: [], estimatedMinutes: 0 };
+  const exerciseIds = timePlan.exerciseIds;
+  const duration = timePlan.estimatedMinutes;
   const todaySession = sessions.filter((session) => isSameDay(new Date(session.date), now) && getProgramSessions([session], programId).length > 0)
     .sort((a, b) => new Date(b.date) - new Date(a.date)).find((session) => completedCount(session) >= 2);
   const doneToday = !!todaySession && !active;
@@ -66,12 +67,19 @@ export default function Home() {
     if (active) { withViewTransition(() => navigate('/workout'), 'console-in'); return; }
     if (!workout || !exerciseIds.length) return;
     const sessionWeek = loadCurrentWeek(programId);
-    const sessionExerciseIds = workout.isCustom
-      ? workout.exercises.filter((id) => getExercise(id))
-      : getExercisesForTimeBudget(workout, sessionWeek, timeBudget, context);
+    const sessionPlan = planWorkoutForTimeBudget(workout, sessionWeek, timeBudget, context);
+    if (!sessionPlan.exercisePlan.length) return;
     const session = workout.isCustom
-      ? buildCustomSession(workout.name, sessionExerciseIds, sessionWeek, mode, programId)
-      : buildSession(workout.id, sessionWeek, mode, { ...context, programId, exerciseIds: sessionExerciseIds, timeBudgetMin: timeBudget });
+      ? buildCustomSession(workout.name, sessionPlan.exerciseIds, sessionWeek, sessionPlan.mode, programId, {
+          exercisePlan: sessionPlan.exercisePlan,
+          timeBudgetMin: timeBudget,
+        })
+      : buildSession(workout.id, sessionWeek, sessionPlan.mode, {
+          ...context,
+          programId,
+          exercisePlan: sessionPlan.exercisePlan,
+          timeBudgetMin: timeBudget,
+        });
     if (!session) return;
     saveActiveSession(session);
     triggerFeedback('workoutStart');
@@ -183,7 +191,7 @@ export default function Home() {
             {(workoutOverride || customWorkoutOverride) && <button type="button" onClick={() => { setWorkoutOverride(null); setCustomWorkoutOverride(null); }} className="mt-2 block text-xs text-muted-foreground underline underline-offset-4">Restore planned workout</button>}
           </section>
 
-          <RoutineCard key={workout.id || 'workout-warmup'} title="Warm-up" subtitle="Prepare the joints and movements you'll use today." items={getRoutineForExercises(exerciseIds, WARMUPS)} routineKey={workout.id || 'workout-warmup'} />
+          <RoutineCard key={workout.id || 'workout-warmup'} title="Warm-up" subtitle="Prepare the joints and movements you'll use today." items={getRoutineForExercises(exerciseIds, WARMUPS)} routineKey={workout.id || 'workout-warmup'} persist />
 
           <section className="apex-time-panel mt-3">
             <div className="flex items-center justify-between gap-3"><div><p className="apex-overline">TIME AVAILABLE</p><p className="mt-1 text-sm font-semibold">How long have you got?</p></div><label className="apex-time-input"><input aria-label="Available training minutes" type="number" min="10" max="120" value={availableMinutes} onChange={(event) => setAvailableMinutes(event.target.value)} onBlur={() => setAvailableMinutes(String(Math.max(10, Math.min(120, Number(availableMinutes) || 30))))} /><span>min</span></label></div>
@@ -218,8 +226,25 @@ function getRoutineForExercises(exercisesOrIds, routines) {
     });
 }
 
-function RoutineCard({ title, subtitle, items }) {
-  const [completed, setCompleted] = React.useState([]);
+function RoutineCard({ title, subtitle, items, routineKey, persist = false }) {
+  const routineItemKey = (item) => `${item.name}::${item.detail}`;
+  const [completed, setCompleted] = React.useState(() => persist ? loadWarmupProgress(routineKey) : []);
+
+  useEffect(() => {
+    if (!persist) return undefined;
+    const syncFromStorage = () => setCompleted(loadWarmupProgress(routineKey));
+    window.addEventListener('focus', syncFromStorage);
+    document.addEventListener('visibilitychange', syncFromStorage);
+    return () => {
+      window.removeEventListener('focus', syncFromStorage);
+      document.removeEventListener('visibilitychange', syncFromStorage);
+    };
+  }, [persist, routineKey]);
+
+  useEffect(() => {
+    if (persist) saveWarmupProgress(routineKey, completed);
+  }, [completed, persist, routineKey]);
+
   if (!items?.length) return null;
   return (
     <details className="group mt-3 overflow-hidden rounded-xl border border-border/60 bg-card/25">
@@ -229,19 +254,20 @@ function RoutineCard({ title, subtitle, items }) {
           <p className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
-          <span className="rounded-full bg-muted/70 px-2 py-1 text-[10px] font-semibold tabular-nums text-muted-foreground">{completed.length}/{items.length}</span>
+          <span className="rounded-full bg-muted/70 px-2 py-1 text-[10px] font-semibold tabular-nums text-muted-foreground">{items.filter((item) => completed.includes(routineItemKey(item))).length}/{items.length}</span>
           <ChevronDown size={15} className="text-muted-foreground transition-transform group-open:rotate-180" />
         </div>
       </summary>
       <div className="border-t border-border/50 px-3.5 py-1.5">
         {items.map((item, index) => {
-          const checked = completed.includes(index);
+          const key = routineItemKey(item);
+          const checked = completed.includes(key);
           return (
             <label key={item.name} className="group/item flex min-h-10 cursor-pointer items-center gap-2.5 border-b border-border/35 py-2 last:border-0">
               <input
                 type="checkbox"
                 checked={checked}
-                onChange={() => setCompleted((current) => checked ? current.filter((value) => value !== index) : [...current, index])}
+                onChange={() => setCompleted((current) => checked ? current.filter((value) => value !== key) : [...current, key])}
                 className="peer sr-only"
               />
               <span

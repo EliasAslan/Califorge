@@ -38,24 +38,37 @@ assert.equal(storage.loadExerciseIncrement('ex_pushup', 'reps', 1), 1, 'Other fi
 storage.saveExerciseIncrement('ex_pushup', 'hold', 10);
 assert.equal(storage.loadExerciseIncrement('ex_pushup', 'hold', 5), 10, 'Hold step should persist');
 
+// Warm-up progress survives route/tab changes but expires after the local day.
+storage.saveWarmupProgress('push_a', ['wrist', 'hips', 'wrist', '']);
+assert.deepEqual(storage.loadWarmupProgress('push_a'), ['wrist', 'hips'], 'Warm-up checks should be deduplicated and persisted');
+const warmupStorageKey = 'cali.v1.warmupProgress';
+const warmupData = JSON.parse(store.get(warmupStorageKey));
+warmupData.push_a.date = '2000-01-01';
+store.set(warmupStorageKey, JSON.stringify(warmupData));
+assert.deepEqual(storage.loadWarmupProgress('push_a'), [], 'Previous-day warm-up checks should be discarded');
+storage.saveWarmupProgress('push_a', ['handstand']);
+storage.clearWarmupProgress();
+assert.deepEqual(storage.loadWarmupProgress('push_a'), [], 'Finishing a workout should clear warm-up checks');
+
 
 // 2. Pure training-logic validation checks
 const sourceRoot = path.resolve('src/lib');
 const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'apex-training-ui-test-'));
 try {
-  const modules = ['storage.js', 'appearance.js', 'programData.js', 'trainingLogic.js'];
+  const modules = ['storage.js', 'appearance.js', 'exerciseAdaptations.js', 'programData.js', 'trainingLogic.js'];
   for (const file of modules) {
     let source = await fs.readFile(path.join(sourceRoot, file), 'utf8');
     source = source
       .replaceAll("'./storage'", "'./storage.mjs'")
       .replaceAll("'./appearance'", "'./appearance.mjs'")
-      .replaceAll("'./programData'", "'./programData.mjs'");
+      .replaceAll("'./programData'", "'./programData.mjs'")
+      .replaceAll("'./exerciseAdaptations'", "'./exerciseAdaptations.mjs'");
     const outputName = file.replace(/\.js$/, '.mjs');
     await fs.writeFile(path.join(tempRoot, outputName), source);
   }
 
   const logic = await import(pathToFileURL(path.join(tempRoot, 'trainingLogic.mjs')));
-  const { missingFields, isSkillType } = logic;
+  const { missingFields, isSkillType, applyLoadToExerciseSets } = logic;
 
   // reps
   assert.deepEqual(missingFields('reps', { actualReps: null }), ['reps'], 'Reps missing should be detected');
@@ -86,6 +99,34 @@ try {
   assert.equal(isSkillType('reps'), false);
   assert.deepEqual(missingFields('skill', { actualSec: null }), [], 'Skill hold is optional');
   assert.deepEqual(missingFields('prehab', { actualSec: null }), [], 'Prehab hold is optional');
+
+  const loadExample = {
+    sets: [
+      { completed: true, skipped: false, weight: 5 },
+      { completed: false, skipped: false, weight: null },
+      { completed: false, skipped: false, weight: null },
+    ],
+  };
+  const loaded = applyLoadToExerciseSets(loadExample, 1, 10);
+  assert.deepEqual(loaded.sets.map((set) => set.weight), [5, 10, 10], 'Load should carry to pending sets only');
+  const correctedCompleted = applyLoadToExerciseSets(loaded, 0, 7);
+  assert.deepEqual(correctedCompleted.sets.map((set) => set.weight), [7, 10, 10], 'Editing a completed set should not rewrite later sets');
+
+  // Session-only editing must append without stealing the active cursor or clock.
+  const workoutSessionSource = await fs.readFile(path.resolve('src/pages/WorkoutSession.jsx'), 'utf8');
+  const addExerciseHandler = workoutSessionSource.slice(
+    workoutSessionSource.indexOf('const addExerciseToSession'),
+    workoutSessionSource.indexOf('const handleExercisePick'),
+  );
+  assert.match(addExerciseHandler, /next\.exercises\.push\(/, 'Add exercise should append to this session');
+  assert.doesNotMatch(addExerciseHandler, /next\.cursor\s*=/, 'Appending an exercise must preserve the current exercise and set');
+  assert.match(addExerciseHandler, /timingStartedAt: null/, 'The appended exercise should not start timing before it becomes active');
+  assert.doesNotMatch(addExerciseHandler, /stopExerciseClock/, 'Appending must not stop the current exercise clock');
+
+  // Reorder mode remembers the layout the user came from and restores it on exit.
+  assert.match(workoutSessionSource, /const \[layoutBeforeReorder, setLayoutBeforeReorder\] = useState\(null\)/);
+  assert.match(workoutSessionSource, /if \(layoutBeforeReorder\) setLayout\(layoutBeforeReorder\)/);
+  assert.match(workoutSessionSource, /setLayoutBeforeReorder\(layout\)/);
 
   console.log('Workout session UI and logic checks passed.');
 } finally {

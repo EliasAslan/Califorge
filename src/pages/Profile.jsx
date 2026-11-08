@@ -24,7 +24,7 @@ import { listCustomWorkouts, listSessions, listBodyweightEntries, replaceAllTrai
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
 
-const EQUIPMENT_OPTIONS = ['Parallettes', 'Rings', 'Pull-up bar', 'Resistance bands', 'Dumbbells', 'Weight belt', 'Wall'];
+const EQUIPMENT_OPTIONS = ['Parallettes', 'Rings', 'Pull-up bar', 'Resistance bands', 'Dumbbells', 'Backpack', 'Weight belt', 'Wall', 'Bench / stable chair', 'Step / box'];
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -216,7 +216,7 @@ export default function Profile() {
         </button>
       </SettingsSection>
 
-      <SettingsSection icon={Dumbbell} title="Available equipment" subtitle="APEX uses this when showing exercises and alternatives.">
+      <SettingsSection icon={Dumbbell} title="Available equipment" subtitle="Workouts replace or remove movements when your equipment is unavailable.">
         <div className="flex flex-wrap gap-2">
           {EQUIPMENT_OPTIONS.map((item) => {
             const selected = (settings.equipment || []).includes(item);
@@ -230,7 +230,7 @@ export default function Profile() {
       </SettingsSection>
 
       <SettingsSection icon={Volume2} title="Training preferences" subtitle="Small details that make sessions feel right.">
-        <div className="divide-y divide-border/70">
+        <div>
           <ToggleRow label="Workout notifications" description="Reminders for planned sessions" value={settings.notifications} onChange={(value) => update({ notifications: value })} />
           <ToggleRow label="Interface sounds" description="Soft cues for selections and completed sets" value={settings.interfaceSound} onChange={(value) => update({ interfaceSound: value })} />
           <ToggleRow label="Interface haptics" description="Subtle feedback for key actions" value={settings.interfaceHaptics} onChange={(value) => update({ interfaceHaptics: value })} icon={Vibrate} />
@@ -272,37 +272,13 @@ export default function Profile() {
         <div className="mt-4">
           <p className="mb-2 text-xs font-medium text-muted-foreground">Workout illustration style</p>
           <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => update({ workoutVisualMode: 'badge' })}
-              aria-pressed={(settings.workoutVisualMode || 'badge') === 'badge'}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                (settings.workoutVisualMode || 'badge') === 'badge'
-                  ? 'border-brand bg-card shadow-sm ring-1 ring-brand/30'
-                  : 'border-border bg-card/40 opacity-75 hover:opacity-100'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="block text-sm font-semibold">Hero Badge</span>
-                {(settings.workoutVisualMode || 'badge') === 'badge' && <Check size={14} className="text-brand" />}
-              </div>
+            <button type="button" onClick={() => update({ workoutVisualMode: 'badge' })} aria-pressed={(settings.workoutVisualMode || 'badge') === 'badge'} className={`p-3 rounded-xl border text-left transition-all ${(settings.workoutVisualMode || 'badge') === 'badge' ? 'border-brand bg-card shadow-sm ring-1 ring-brand/30' : 'border-border bg-card/40 opacity-75 hover:opacity-100'}`}>
+              <span className="block text-sm font-semibold">Hero Badge</span>
               <span className="block text-[11px] text-muted-foreground mt-0.5">High-contrast card beside title</span>
             </button>
-            <button
-              type="button"
-              onClick={() => update({ workoutVisualMode: 'watermark' })}
-              aria-pressed={settings.workoutVisualMode === 'watermark'}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                settings.workoutVisualMode === 'watermark'
-                  ? 'border-brand bg-card shadow-sm ring-1 ring-brand/30'
-                  : 'border-border bg-card/40 opacity-75 hover:opacity-100'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="block text-sm font-semibold">Watermark</span>
-                {settings.workoutVisualMode === 'watermark' && <Check size={14} className="text-brand" />}
-              </div>
-              <span className="block text-[11px] text-muted-foreground mt-0.5">Subtle graphic behind exercise title</span>
+            <button type="button" onClick={() => update({ workoutVisualMode: 'watermark' })} aria-pressed={settings.workoutVisualMode === 'watermark'} className={`p-3 rounded-xl border text-left transition-all ${settings.workoutVisualMode === 'watermark' ? 'border-brand bg-card shadow-sm ring-1 ring-brand/30' : 'border-border bg-card/40 opacity-75 hover:opacity-100'}`}>
+              <span className="block text-sm font-semibold">Watermark</span>
+              <span className="block text-[11px] text-muted-foreground mt-0.5">Graphic behind exercise title</span>
             </button>
           </div>
         </div>
@@ -368,15 +344,23 @@ function UnitToggle({ value, onChange }) {
 
 function ToggleRow({ label, description, value, onChange, icon: Icon = Check }) {
   return (
-    <div className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{label}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">{description}</p>
-      </div>
-      <button type="button" role="switch" aria-checked={!!value} aria-label={label} onClick={() => onChange(!value)} className={`apex-switch ${value ? 'is-on' : ''}`}>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={!!value}
+      aria-label={`${label}: ${value ? 'On' : 'Off'}`}
+      onClick={() => onChange(!value)}
+      className="apex-toggle-row"
+    >
+      <span className="apex-toggle-icon" aria-hidden="true"><Icon size={16} /></span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-sm font-semibold">{label}</span>
+        <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{description}</span>
+      </span>
+      <span className={`apex-switch ${value ? 'is-on' : ''}`} aria-hidden="true">
         <span />
-      </button>
-    </div>
+      </span>
+    </button>
   );
 }
 
