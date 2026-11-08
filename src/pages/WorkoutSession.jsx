@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { useNavigate } from 'react-router-dom';
 import {
   X, Info, Check, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2,
-  StickyNote, ArrowLeftRight, Search, Plus, ArrowUpDown,
+  StickyNote, ArrowLeftRight, Search, Plus, ArrowUpDown, Minus,
 } from 'lucide-react';
 import { categoryColor, getExercise, LIBRARY_EXERCISES, MODES } from '@/lib/programData';
 import { isExerciseEquipmentAvailable } from '@/lib/exerciseAdaptations';
@@ -23,7 +23,7 @@ import VariationSwitcher from '@/components/workout/VariationSwitcher';
 import RestState from '@/components/workout/RestState';
 import WheelSheet from '@/components/workout/WheelSheet';
 import ConsoleSheet from '@/components/workout/ConsoleSheet';
-import { triggerFeedback } from '@/lib/workoutFeedback';
+import { triggerFeedback, playRestCountdownSound, playRestCompleteSound, vibrate } from '@/lib/workoutFeedback';
 import { withViewTransition } from '@/lib/viewTransition';
 
 const LAYOUTS = [
@@ -76,6 +76,9 @@ export default function WorkoutSession() {
   const [pickerMode, setPickerMode] = useState('replace');
   const [reorderMode, setReorderMode] = useState(false);
   const [layoutBeforeReorder, setLayoutBeforeReorder] = useState(null);
+  const [showOverviewRestAdjust, setShowOverviewRestAdjust] = useState(false);
+  const overviewRestFiredRef = useRef(false);
+  const overviewRestSecondRef = useRef(null);
   const [exerciseQuery, setExerciseQuery] = useState('');
   const [, setIncrementTick] = useState(0);
   const [stageAnimate, setStageAnimate] = useState(false);
@@ -196,6 +199,37 @@ export default function WorkoutSession() {
       return next;
     });
   }, []);
+
+  // Overview keeps the exercise list visible during rest, with the same
+  // countdown behavior and completion cues as the focused rest screen.
+  useEffect(() => {
+    if (layout !== 'list' || !session || session.phase !== 'rest' || !session.restEndsAt) {
+      overviewRestFiredRef.current = false;
+      overviewRestSecondRef.current = null;
+      setShowOverviewRestAdjust(false);
+      return undefined;
+    }
+    overviewRestFiredRef.current = false;
+    overviewRestSecondRef.current = null;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((session.restEndsAt - Date.now()) / 1000));
+      setNow(Date.now());
+      if (remaining >= 1 && remaining <= 5 && remaining !== overviewRestSecondRef.current) {
+        playRestCountdownSound(remaining);
+        vibrate([remaining === 5 ? 18 : remaining === 4 ? 28 : 42]);
+      }
+      overviewRestSecondRef.current = remaining;
+      if (remaining <= 0 && !overviewRestFiredRef.current) {
+        overviewRestFiredRef.current = true;
+        playRestCompleteSound();
+        vibrate([110, 55, 110, 55, 190]);
+        finishRest();
+      }
+    };
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [layout, session?.phase, session?.restEndsAt, finishRest]);
 
   if (!loaded || !session) {
     return (
@@ -726,14 +760,50 @@ export default function WorkoutSession() {
 
   const renderTopBar = () => (
     <header className="console-rail">
-      <button
-        type="button"
-        onClick={exit}
-        aria-label="Exit workout"
-        className="console-icon-button"
-      >
-        <X size={17} />
-      </button>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          onClick={exit}
+          aria-label="Exit workout"
+          className="console-icon-button"
+        >
+          <X size={17} />
+        </button>
+        {layout === 'list' && isRest && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowOverviewRestAdjust((open) => !open)}
+              aria-expanded={showOverviewRestAdjust}
+              aria-label={showOverviewRestAdjust ? 'Hide rest timer controls' : 'Adjust rest timer'}
+              className="flex h-8 items-center gap-1.5 rounded-full border border-[var(--console-line)] bg-[var(--console-surface-2)] px-2.5 text-[11px] font-semibold tabular-nums text-[var(--console-chalk)] transition-colors hover:border-[var(--console-steel)]"
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--console-signal)' }} />
+              {formatClock(Math.max(0, Math.ceil(((session.restEndsAt || Date.now()) - now) / 1000)) * 1000)}
+            </button>
+            {showOverviewRestAdjust && (
+              <div className="flex items-center gap-1 rounded-full border border-[var(--console-line)] bg-[var(--console-surface)] p-0.5">
+                <button
+                  type="button"
+                  onClick={() => adjustRest(-30)}
+                  aria-label="Reduce rest by 30 seconds"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                >
+                  <Minus size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjustRest(30)}
+                  aria-label="Add 30 seconds of rest"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="min-w-0 flex-1 text-center">
         <p className="truncate text-[12px] font-semibold text-[var(--console-chalk)]">
