@@ -1338,13 +1338,17 @@ export default function WorkoutSession() {
                 <section className={`console-hero ${visualMode === 'watermark' ? 'console-hero-watermark' : 'console-hero-badge-mode'}`}>
             {visualMode === 'watermark' ? (
               <>
-                <div className="console-watermark" aria-hidden="true">
-                  <ExerciseVisual visualId={cur.visualId} category={cur.category} className="h-full w-full" />
+                <div className="console-watermark-stage">
+                  <div className="console-watermark" aria-hidden="true">
+                    <ExerciseVisual visualId={cur.visualId} category={cur.category} className="h-full w-full" />
+                  </div>
+                  <div className="console-watermark-title">
+                    <h1 className="console-title">{cur.name}</h1>
+                  </div>
                 </div>
-                <div className="console-hero-body">
+                <div className="console-watermark-meta">
                   <span className="console-signal" aria-hidden="true" />
                   <p className="console-category">{cur.category}</p>
-                  <h1 className="console-title">{cur.name}</h1>
                   <p className="mt-1 text-[13px] text-[var(--console-steel)]">{cur.variation}</p>
                   <p className="console-set-context">Set {targetCursor.setIndex + 1} of {cur.sets.length}{set.completed ? (set.skipped ? ', skipped' : ', logged') : ', ready to log'}</p>
                 </div>
