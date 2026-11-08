@@ -112,6 +112,22 @@ try {
   const correctedCompleted = applyLoadToExerciseSets(loaded, 0, 7);
   assert.deepEqual(correctedCompleted.sets.map((set) => set.weight), [7, 10, 10], 'Editing a completed set should not rewrite later sets');
 
+  // Session-only editing must append without stealing the active cursor or clock.
+  const workoutSessionSource = await fs.readFile(path.resolve('src/pages/WorkoutSession.jsx'), 'utf8');
+  const addExerciseHandler = workoutSessionSource.slice(
+    workoutSessionSource.indexOf('const addExerciseToSession'),
+    workoutSessionSource.indexOf('const handleExercisePick'),
+  );
+  assert.match(addExerciseHandler, /next\.exercises\.push\(/, 'Add exercise should append to this session');
+  assert.doesNotMatch(addExerciseHandler, /next\.cursor\s*=/, 'Appending an exercise must preserve the current exercise and set');
+  assert.match(addExerciseHandler, /timingStartedAt: null/, 'The appended exercise should not start timing before it becomes active');
+  assert.doesNotMatch(addExerciseHandler, /stopExerciseClock/, 'Appending must not stop the current exercise clock');
+
+  // Reorder mode remembers the layout the user came from and restores it on exit.
+  assert.match(workoutSessionSource, /const \[layoutBeforeReorder, setLayoutBeforeReorder\] = useState\(null\)/);
+  assert.match(workoutSessionSource, /if \(layoutBeforeReorder\) setLayout\(layoutBeforeReorder\)/);
+  assert.match(workoutSessionSource, /setLayoutBeforeReorder\(layout\)/);
+
   console.log('Workout session UI and logic checks passed.');
 } finally {
   await fs.rm(tempRoot, { recursive: true, force: true });
