@@ -474,6 +474,55 @@ export default function WorkoutSession() {
     else switchExercise(exercise.id);
   };
 
+  const addSetAt = (exerciseIndex) => {
+    triggerFeedback('selection');
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      const exercise = next.exercises[exerciseIndex];
+      if (!exercise) return prev;
+      const template = exercise.sets[exercise.sets.length - 1] || {};
+      const nextIndex = exercise.sets.length;
+      exercise.sets.push({
+        ...template,
+        id: `added_${Date.now()}_${exerciseIndex}_${nextIndex}`,
+        index: nextIndex,
+        actualReps: null,
+        actualSec: null,
+        weight: template.weight ?? null,
+        rpe: null,
+        rir: null,
+        completed: false,
+        skipped: false,
+        completedAt: null,
+        suggestedReps: null,
+      });
+      return next;
+    });
+  };
+
+  const removeSetAt = (exerciseIndex, setIndex) => {
+    triggerFeedback('selection');
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      const exercise = next.exercises[exerciseIndex];
+      if (!exercise || exercise.sets.length <= 1 || !exercise.sets[setIndex]) return prev;
+      exercise.sets.splice(setIndex, 1);
+      exercise.sets.forEach((item, index) => { item.index = index; });
+      const remap = (cursor) => {
+        if (!cursor || cursor.exerciseIndex !== exerciseIndex) return cursor;
+        if (cursor.setIndex > setIndex) return { ...cursor, setIndex: cursor.setIndex - 1 };
+        if (cursor.setIndex === setIndex) return {
+          ...cursor,
+          setIndex: Math.min(setIndex, exercise.sets.length - 1),
+        };
+        return cursor;
+      };
+      next.cursor = remap(next.cursor);
+      next.pendingNext = remap(next.pendingNext);
+      return next;
+    });
+  };
+
   const moveExerciseInSession = (exerciseIndex, delta) => {
     const targetIndex = exerciseIndex + delta;
     if (targetIndex < 0 || targetIndex >= session.exercises.length) return;
@@ -1181,6 +1230,8 @@ export default function WorkoutSession() {
             onSkipAt={skipSetAt}
             reorderMode={reorderMode}
             onMoveExercise={moveExerciseInSession}
+            onAddSet={addSetAt}
+            onRemoveSet={removeSetAt}
             togglePause={togglePause}
             renderTopBar={renderTopBar}
             missingAt={missingAt}
