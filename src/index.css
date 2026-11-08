@@ -569,7 +569,7 @@
 .console-watermark {
   position: absolute;
   top: -12px;
-  left: -12px;
+  right: -12px;
   width: clamp(190px, 54vw, 236px);
   height: clamp(190px, 54vw, 236px);
   color: var(--console-chalk);
