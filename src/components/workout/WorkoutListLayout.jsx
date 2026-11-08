@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Check, Pause, Play } from 'lucide-react';
+import { Check, Pause, Play, ArrowUp, ArrowDown } from 'lucide-react';
 import SetInputs, { missingFields, EffortRow } from '@/components/workout/SetInputs';
 import { getExercise, categoryColor } from '@/lib/programData';
 import { formatTarget } from '@/lib/trainingLogic';
@@ -31,6 +31,8 @@ export default function WorkoutListLayout({
   updateAt,
   onCompleteAt,
   onSkipAt,
+  reorderMode = false,
+  onMoveExercise,
   togglePause,
   renderTopBar,
   missingAt,
@@ -106,9 +108,35 @@ export default function WorkoutListLayout({
                     </h3>
                   </div>
                 </div>
-                <span className="console-list-exercise-count">
-                  {completed}/{exercise.sets.length}
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="console-list-exercise-count">
+                    {completed}/{exercise.sets.length}
+                  </span>
+                  {reorderMode && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        aria-label={`Move ${exercise.name} up`}
+                        title="Move up"
+                        disabled={exerciseIndex === 0}
+                        onClick={() => onMoveExercise?.(exerciseIndex, -1)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--console-line)] text-[var(--console-steel)] transition-colors hover:text-[var(--console-chalk)] disabled:opacity-25"
+                      >
+                        <ArrowUp size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Move ${exercise.name} down`}
+                        title="Move down"
+                        disabled={exerciseIndex === session.exercises.length - 1}
+                        onClick={() => onMoveExercise?.(exerciseIndex, 1)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--console-line)] text-[var(--console-steel)] transition-colors hover:text-[var(--console-chalk)] disabled:opacity-25"
+                      >
+                        <ArrowDown size={15} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="console-list-exercise-track" aria-hidden="true">
                 <span

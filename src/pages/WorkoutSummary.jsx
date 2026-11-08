@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import { categoryColor, MODES } from '@/lib/programData';
 import { getProgressionStatus, formatClock, getPhaseCompletion, maybeAdvanceWeek } from '@/lib/trainingLogic';
 import { loadActiveSession, clearActiveSession, loadSettings, saveSettings, startNewCycle } from '@/lib/storage';
@@ -87,6 +87,27 @@ export default function WorkoutSummary() {
     setWeightLogged(true);
   };
 
+  const returnToWorkoutToAdd = () => {
+    const next = structuredClone(session);
+    next.finishedAt = null;
+    next.paused = false;
+    next.resumeAt = Date.now();
+    next.lastActivityAt = Date.now();
+    next.phase = 'work';
+    next.restEndsAt = null;
+    next.pendingNext = null;
+    if (next.exercises.length) {
+      const lastIndex = next.exercises.length - 1;
+      next.cursor = {
+        exerciseIndex: lastIndex,
+        setIndex: Math.max(0, next.exercises[lastIndex].sets.length - 1),
+      };
+      next.exercises[lastIndex].timingStartedAt = null;
+    }
+    saveActiveSession(next);
+    withViewTransition(() => navigate('/workout'), 'console-out');
+  };
+
   const handleSave = async () => {
     if (saved) {
       navigate('/');
@@ -134,7 +155,17 @@ export default function WorkoutSummary() {
     <div className="console-page">
       <div className="console-doc">
         <div className="console-doc-inner">
-          <header>
+          <header className="relative pr-10">
+            <button
+              type="button"
+              onClick={returnToWorkoutToAdd}
+              disabled={saving || saved}
+              aria-label="Return to workout to add exercises"
+              title="Add more exercises"
+              className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-lg text-[var(--console-steel)] opacity-45 transition-opacity hover:bg-[var(--console-surface-2)] hover:opacity-100 disabled:pointer-events-none disabled:opacity-15"
+            >
+              <Plus size={16} />
+            </button>
             <p className="text-[12px] font-semibold text-[var(--console-steel)]">Session complete</p>
             <h1 className="mt-2 text-[clamp(2rem,9vw,2.75rem)] font-extrabold leading-[0.98] tracking-[-0.045em] text-[var(--console-chalk)]">
               {session.workoutName}

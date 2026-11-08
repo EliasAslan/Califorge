@@ -82,6 +82,14 @@ try {
     'A longer budget should add exercises or sets',
   );
 
+  const timedHistory = [
+    { date: '2026-10-01', exercises: [{ exerciseId: 'pa_handstand', durationMs: 180000, sets: [{ completed: true, skipped: false }, { completed: true, skipped: false }] }] },
+    { date: '2026-10-08', exercises: [{ exerciseId: 'pa_handstand', durationMs: 180000, sets: [{ completed: true, skipped: false }, { completed: true, skipped: false }] }] },
+    { date: '2026-10-15', exercises: [{ exerciseId: 'pa_handstand', durationMs: 900000, sets: [{ completed: true, skipped: false }, { completed: true, skipped: false }] }] },
+  ];
+  assert.deepEqual(logic.getPersonalExerciseSecondsPerSet('pa_handstand', timedHistory), { seconds: 90, sampleCount: 3 });
+  assert.equal(logic.getPersonalExerciseSecondsPerSet('pa_handstand', [timedHistory[0]]), null);
+
   // A floor-only travel setup should never receive movements that still
   // require unavailable gear. Alternative resolution must also avoid duplicate
   // substitute movements when multiple originals map to the same fallback.

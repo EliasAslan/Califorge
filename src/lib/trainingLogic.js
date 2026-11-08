@@ -136,6 +136,8 @@ const buildExerciseEntry = (exId, mode, deload, timeBudgetMin = null, options = 
     rir: ex.rir || null,
     progression: null,
     note: '',
+    durationMs: 0,
+    timingStartedAt: null,
     sets,
   };
 };
@@ -155,6 +157,7 @@ export const buildSession = (workoutId, week, mode = 'full', context = {}) => {
       originalId: item.originalId,
     }))
     .filter(Boolean);
+  if (exercises[0]) exercises[0].timingStartedAt = Date.now();
 
   return {
     id: 's_' + Date.now(),
@@ -191,6 +194,7 @@ export const buildCustomSession = (name, exerciseIds, week, mode = 'full', progr
       originalId: item.originalId,
     }))
     .filter(Boolean);
+  if (exercises[0]) exercises[0].timingStartedAt = Date.now();
 
   return {
     id: 's_' + Date.now(),
@@ -223,16 +227,41 @@ const parseMin = (s) => {
   return nums.map(Number).reduce((a, b) => a + b, 0) / nums.length;
 };
 
-const estimateExerciseSeconds = (exercise, sets, timeBudgetMin = Infinity) => {
+export const getPersonalExerciseSecondsPerSet = (exerciseId, sessions = []) => {
+  const samples = (Array.isArray(sessions) ? sessions : [])
+    .slice()
+    .sort((a, b) => new Date(b.date || b.finishedAt || b.startedAt || 0) - new Date(a.date || a.finishedAt || a.startedAt || 0))
+    .flatMap((session) => {
+      const entry = session.exercises?.find((item) => item.exerciseId === exerciseId);
+      if (!entry || !Number.isFinite(entry.durationMs) || entry.durationMs <= 0) return [];
+      const sets = Array.isArray(entry.sets) ? entry.sets : [];
+      if (!sets.length || !sets.every((set) => set.completed && !set.skipped)) return [];
+      return [entry.durationMs / 1000 / sets.length];
+    })
+    .slice(0, 8)
+    .filter((seconds) => Number.isFinite(seconds) && seconds >= 3 && seconds <= 900);
+
+  if (samples.length < 2) return null;
+  const ordered = samples.slice().sort((a, b) => a - b);
+  const middle = Math.floor(ordered.length / 2);
+  const median = ordered.length % 2
+    ? ordered[middle]
+    : (ordered[middle - 1] + ordered[middle]) / 2;
+  return { seconds: median, sampleCount: samples.length };
+};
+
+const estimateExerciseSeconds = (exercise, sets, timeBudgetMin = Infinity, sessions = []) => {
   if (!exercise) return 0;
-  if (exercise.type === 'skill' || exercise.type === 'prehab') {
-    return Math.min(parseMin(exercise.durationMin), Number(timeBudgetMin) || Infinity) * 60;
-  }
-  const workSeconds = exercise.type === 'hold' ? 20 : exercise.type === 'weighted' ? 40 : 35;
-  const sideFactor = exercise.perSide ? 1.65 : 1;
-  return (sets * workSeconds * sideFactor)
-    + Math.max(0, sets - 1) * (exercise.restSec || 0)
-    + 60;
+  const personal = getPersonalExerciseSecondsPerSet(exercise.id, sessions);
+  const baseSeconds = exercise.type === 'skill' || exercise.type === 'prehab'
+    ? Math.min(parseMin(exercise.durationMin), Number(timeBudgetMin) || Infinity) * 60
+    : ((sets * (exercise.type === 'hold' ? 20 : exercise.type === 'weighted' ? 40 : 35) * (exercise.perSide ? 1.65 : 1))
+      + Math.max(0, sets - 1) * (exercise.restSec || 0)
+      + 60);
+
+  if (!personal) return baseSeconds;
+  const confidence = Math.min(0.8, 0.35 + Math.max(0, personal.sampleCount - 2) * 0.1);
+  return (personal.seconds * sets * confidence) + (baseSeconds * (1 - confidence));
 };
 
 const resolveForEquipment = (originalId, equipment) => {
@@ -251,7 +280,7 @@ const resolveForEquipment = (originalId, equipment) => {
   return null;
 };
 
-const makeExerciseCandidate = (originalId, priority, enjoyment, equipment, mode, week) => {
+const makeExerciseCandidate = (originalId, priority, enjoyment, equipment, mode, week, sessions = []) => {
   const resolved = resolveForEquipment(originalId, equipment);
   if (!resolved) return null;
   const exercise = getExercise(resolved.id);
@@ -264,7 +293,7 @@ const makeExerciseCandidate = (originalId, priority, enjoyment, equipment, mode,
     baseSets: sets,
     priority,
     enjoyment,
-    seconds: estimateExerciseSeconds(exercise, sets),
+    seconds: estimateExerciseSeconds(exercise, sets, Infinity, sessions),
   };
 };
 
@@ -294,13 +323,13 @@ export const getEquipmentCompatibleExercisePlan = (exerciseIds, equipment, mode 
 
 const candidateToPlanItem = ({ id, originalId, sets }) => ({ id, originalId, sets });
 
-export const estimateExercisePlanDuration = (exercisePlan, week, timeBudgetMin = Infinity) => {
+export const estimateExercisePlanDuration = (exercisePlan, week, timeBudgetMin = Infinity, sessions = []) => {
   const plan = Array.isArray(exercisePlan) ? exercisePlan : [];
   const seconds = plan.reduce((total, item) => {
     const id = typeof item === 'string' ? item : item.id;
     const exercise = getExercise(id);
     const sets = typeof item === 'string' ? modeSetCount(exercise, 'full', isDeloadWeek(week)) : (item.sets || modeSetCount(exercise, 'full', isDeloadWeek(week)));
-    return total + estimateExerciseSeconds(exercise, sets, timeBudgetMin);
+    return total + estimateExerciseSeconds(exercise, sets, timeBudgetMin, sessions);
   }, 0);
   return Math.round(seconds / 60);
 };
@@ -326,6 +355,7 @@ export const planWorkoutForTimeBudget = (workout, week, minutes, context = {}) =
     equipment,
     mode,
     week,
+    context.sessions || [],
   )).filter(Boolean).sort(candidateOrder);
   const usedExerciseIds = new Set();
   const candidates = resolvedCandidates.filter((candidate) => {
@@ -373,6 +403,7 @@ export const planWorkoutForTimeBudget = (workout, week, minutes, context = {}) =
       equipment,
       'full',
       week,
+      context.sessions || [],
     )).filter((candidate) => candidate && !selected.some((item) => item.id === candidate.id));
     for (const candidate of optional) {
       if (selected.length >= ids.length + 3) break;

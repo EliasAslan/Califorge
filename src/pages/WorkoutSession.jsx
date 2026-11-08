@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { useNavigate } from 'react-router-dom';
 import {
   X, Info, Check, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2,
-  StickyNote, ArrowLeftRight, Search,
+  StickyNote, ArrowLeftRight, Search, Plus, ArrowUpDown,
 } from 'lucide-react';
 import { categoryColor, getExercise, LIBRARY_EXERCISES, MODES } from '@/lib/programData';
 import { isExerciseEquipmentAvailable } from '@/lib/exerciseAdaptations';
@@ -40,6 +40,25 @@ const STEP_OPTIONS = { reps: [1, 2, 5], weight: [1, 2.5, 5, 10], hold: [1, 5, 10
 
 const first = (value) => (Array.isArray(value) ? value[0] : value ?? undefined);
 
+const stopExerciseClock = (session, exerciseIndex, now = Date.now()) => {
+  const exercise = session?.exercises?.[exerciseIndex];
+  if (!exercise?.timingStartedAt) return;
+  exercise.durationMs = (exercise.durationMs || 0) + Math.max(0, now - exercise.timingStartedAt);
+  exercise.timingStartedAt = null;
+};
+
+const startExerciseClock = (session, exerciseIndex, now = Date.now()) => {
+  const exercise = session?.exercises?.[exerciseIndex];
+  const hasPendingSets = exercise?.sets?.some((set) => !set.completed);
+  if (exercise && hasPendingSets && !exercise.timingStartedAt) exercise.timingStartedAt = now;
+};
+
+const switchExerciseClock = (session, fromIndex, toIndex, now = Date.now()) => {
+  if (fromIndex === toIndex) return;
+  stopExerciseClock(session, fromIndex, now);
+  startExerciseClock(session, toIndex, now);
+};
+
 export default function WorkoutSession() {
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
@@ -54,6 +73,8 @@ export default function WorkoutSession() {
   const [showCue, setShowCue] = useState(false);
   const [showNote, setShowNote] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState('replace');
+  const [reorderMode, setReorderMode] = useState(false);
   const [exerciseQuery, setExerciseQuery] = useState('');
   const [, setIncrementTick] = useState(0);
   const [stageAnimate, setStageAnimate] = useState(false);
@@ -83,7 +104,10 @@ export default function WorkoutSession() {
       return;
     }
     // don't count time the app was closed as active training
-    if (stored.resumeAt && !stored.paused) stored.resumeAt = Date.now();
+    if (stored.resumeAt && !stored.paused) {
+      stored.resumeAt = Date.now();
+      startExerciseClock(stored, stored.cursor?.exerciseIndex ?? 0);
+    }
     setSession(stored);
     setLoaded(true);
   }, [navigate]);
@@ -148,8 +172,10 @@ export default function WorkoutSession() {
     setSession((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
+      const nextCursor = next.pendingNext || next.cursor;
+      switchExerciseClock(next, next.cursor?.exerciseIndex, nextCursor.exerciseIndex);
       next.phase = 'work';
-      next.cursor = next.pendingNext || next.cursor;
+      next.cursor = nextCursor;
       next.restEndsAt = null;
       next.pendingNext = null;
       return next;
@@ -240,6 +266,7 @@ export default function WorkoutSession() {
       const exercise = next.exercises[exerciseIndex];
       if (!exercise || exercise.exerciseId === targetId) return prev;
 
+      stopExerciseClock(next, exerciseIndex);
       const completedSets = exercise.sets.filter((s) => s.completed);
       const pendingSets = exercise.sets.filter((s) => !s.completed);
       if (!pendingSets.length) return prev;
@@ -262,6 +289,8 @@ export default function WorkoutSession() {
         progression: null,
         substitutedFrom: source.name,
         substitutedBy: undefined,
+        durationMs: 0,
+        timingStartedAt: Date.now(),
         sets: sets.map((s) => ({
           ...s,
           targetReps: definition.targetReps ? [...definition.targetReps] : null,
@@ -304,10 +333,138 @@ export default function WorkoutSession() {
   };
 
   const openExercisePicker = () => {
+    setPickerMode('replace');
     setShowMenu(false);
     setShowCue(false);
     setExerciseQuery('');
     setShowExercisePicker(true);
+  };
+
+  const openAddExercisePicker = () => {
+    setPickerMode('add');
+    setShowMenu(false);
+    setShowCue(false);
+    setExerciseQuery('');
+    setShowExercisePicker(true);
+  };
+
+  const addSetToCurrentExercise = () => {
+    setShowMenu(false);
+    triggerFeedback('selection');
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      const exerciseIndex = targetCursor.exerciseIndex;
+      const exercise = next.exercises[exerciseIndex];
+      if (!exercise) return prev;
+      const template = exercise.sets[exercise.sets.length - 1] || {};
+      exercise.sets.push({
+        ...template,
+        id: `added_${Date.now()}_${exercise.sets.length}`,
+        index: exercise.sets.length,
+        actualReps: null,
+        actualSec: null,
+        rpe: null,
+        rir: null,
+        completed: false,
+        skipped: false,
+        completedAt: null,
+        suggestedReps: null,
+      });
+      next.cursor = { exerciseIndex, setIndex: exercise.sets.length - 1 };
+      next.phase = 'work';
+      next.restEndsAt = null;
+      next.pendingNext = null;
+      startExerciseClock(next, exerciseIndex);
+      return next;
+    });
+  };
+
+  const addExerciseToSession = (definition) => {
+    if (!definition) return;
+    triggerFeedback('selection');
+    setShowExercisePicker(false);
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      const now = Date.now();
+      stopExerciseClock(next, next.cursor?.exerciseIndex ?? 0, now);
+      if (next.pendingNext && next.pendingNext.exerciseIndex !== next.cursor?.exerciseIndex) {
+        stopExerciseClock(next, next.pendingNext.exerciseIndex, now);
+      }
+      const setCount = Math.max(1, Number(definition.sets) || 3);
+      const sets = Array.from({ length: setCount }, (_, index) => ({
+        id: `added_${now}_${index}`,
+        index,
+        targetReps: definition.targetReps ? [...definition.targetReps] : null,
+        targetSec: definition.targetSec ? [...definition.targetSec] : null,
+        holdSec: definition.holdSec ?? null,
+        actualReps: null,
+        actualSec: null,
+        weight: null,
+        rpe: null,
+        rir: null,
+        progression: null,
+        completed: false,
+        skipped: false,
+        completedAt: null,
+      }));
+      next.exercises.push({
+        exerciseId: definition.id,
+        originalId: definition.id,
+        plannedExerciseId: null,
+        name: definition.name,
+        variation: definition.variation,
+        visualId: definition.visualId,
+        category: definition.category,
+        type: definition.type,
+        perSide: !!definition.perSide,
+        durationMin: definition.durationMin || null,
+        restSec: definition.restSec || null,
+        rpe: definition.rpe || null,
+        rir: definition.rir || null,
+        progression: null,
+        note: '',
+        durationMs: 0,
+        timingStartedAt: now,
+        sets,
+      });
+      const exerciseIndex = next.exercises.length - 1;
+      next.cursor = { exerciseIndex, setIndex: 0 };
+      next.phase = 'work';
+      next.restEndsAt = null;
+      next.pendingNext = null;
+      next.lastActivityAt = now;
+      return next;
+    });
+  };
+
+  const handleExercisePick = (exercise) => {
+    if (pickerMode === 'add') addExerciseToSession(exercise);
+    else switchExercise(exercise.id);
+  };
+
+  const moveExerciseInSession = (exerciseIndex, delta) => {
+    const targetIndex = exerciseIndex + delta;
+    if (targetIndex < 0 || targetIndex >= session.exercises.length) return;
+    triggerFeedback('selection');
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      const [moved] = next.exercises.splice(exerciseIndex, 1);
+      next.exercises.splice(targetIndex, 0, moved);
+      const remap = (cursor) => {
+        if (!cursor) return cursor;
+        if (cursor.exerciseIndex === exerciseIndex) return { ...cursor, exerciseIndex: targetIndex };
+        if (exerciseIndex < targetIndex && cursor.exerciseIndex > exerciseIndex && cursor.exerciseIndex <= targetIndex) {
+          return { ...cursor, exerciseIndex: cursor.exerciseIndex - 1 };
+        }
+        if (targetIndex < exerciseIndex && cursor.exerciseIndex >= targetIndex && cursor.exerciseIndex < exerciseIndex) {
+          return { ...cursor, exerciseIndex: cursor.exerciseIndex + 1 };
+        }
+        return cursor;
+      };
+      next.cursor = remap(next.cursor);
+      next.pendingNext = remap(next.pendingNext);
+      return next;
+    });
   };
 
   const matchingExercises = LIBRARY_EXERCISES
@@ -329,8 +486,10 @@ export default function WorkoutSession() {
         next.paused = false;
         next.resumeAt = Date.now();
         next.lastActivityAt = Date.now();
+        startExerciseClock(next, next.cursor?.exerciseIndex ?? 0);
       } else {
         if (next.resumeAt) next.activeMs = (next.activeMs || 0) + (Date.now() - next.resumeAt);
+        stopExerciseClock(next, next.cursor?.exerciseIndex ?? 0);
         next.resumeAt = null;
         next.paused = true;
       }
@@ -356,6 +515,7 @@ export default function WorkoutSession() {
 
     if (!upcoming) {
       next.finishedAt = Date.now();
+      stopExerciseClock(next, cursor.exerciseIndex);
       if (next.resumeAt && !next.paused) {
         next.activeMs = (next.activeMs || 0) + (Date.now() - next.resumeAt);
         next.resumeAt = null;
@@ -385,6 +545,9 @@ export default function WorkoutSession() {
       next.restEndsAt = Date.now() + justFinished.restSec * 1000;
       next.pendingNext = upcoming;
     } else {
+      if (upcoming.exerciseIndex !== cursor.exerciseIndex) {
+        switchExerciseClock(next, cursor.exerciseIndex, upcoming.exerciseIndex);
+      }
       next.phase = 'work';
       next.cursor = upcoming;
       next.restEndsAt = null;
@@ -421,6 +584,7 @@ export default function WorkoutSession() {
   const finishWorkout = () => {
     triggerFeedback('workoutFinish');
     const finished = structuredClone(session);
+    stopExerciseClock(finished, finished.cursor?.exerciseIndex ?? 0);
     finished.finishedAt = Date.now();
     if (finished.resumeAt && !finished.paused) {
       finished.activeMs = (finished.activeMs || 0) + (Date.now() - finished.resumeAt);
@@ -451,6 +615,7 @@ export default function WorkoutSession() {
     setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
+      switchExerciseClock(next, next.cursor?.exerciseIndex, exerciseIndex);
       next.cursor = { exerciseIndex, setIndex };
       next.phase = 'work';
       next.restEndsAt = null;
@@ -468,6 +633,7 @@ export default function WorkoutSession() {
     setMissingAt(null);
     setSession((prev) => {
       const next = structuredClone(prev);
+      switchExerciseClock(next, next.cursor?.exerciseIndex, nextIndex);
       next.cursor = {
         exerciseIndex: nextIndex,
         setIndex: delta > 0 ? 0 : Math.max(0, nextExercise.sets.length - 1),
@@ -638,6 +804,34 @@ export default function WorkoutSession() {
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
                 >
                   <ArrowLeftRight size={14} /> Change exercise
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={addSetToCurrentExercise}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                >
+                  <Plus size={14} /> Add set
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={openAddExercisePicker}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                >
+                  <Plus size={14} /> Add exercise
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setLayout('list');
+                    setReorderMode((value) => !value);
+                    setShowMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                >
+                  <ArrowUpDown size={14} /> {reorderMode ? 'Done reordering' : 'Reorder exercises'}
                 </button>
                 <button
                   type="button"
@@ -819,8 +1013,8 @@ export default function WorkoutSession() {
       <ConsoleSheet
         open={showExercisePicker}
         onOpenChange={setShowExercisePicker}
-        title="Change exercise"
-        description="Choose an exercise for the remaining sets"
+        title={pickerMode === 'add' ? 'Add exercise' : 'Change exercise'}
+        description={pickerMode === 'add' ? 'Add a movement to the end of this workout' : 'Choose an exercise for the remaining sets'}
       >
         <div className="space-y-3 pb-2">
           <p className="text-[11px] leading-relaxed text-[var(--console-steel)]">
@@ -849,7 +1043,7 @@ export default function WorkoutSession() {
                   key={exercise.id}
                   type="button"
                   disabled={isCurrent || !cur.sets.some((s) => !s.completed)}
-                  onClick={() => switchExercise(exercise.id)}
+                  onClick={() => handleExercisePick(exercise)}
                   className="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-left transition-colors hover:border-[var(--console-line)] hover:bg-[var(--console-surface-2)] disabled:cursor-default disabled:opacity-45"
                 >
                   <span className="min-w-0 flex-1">
@@ -910,6 +1104,8 @@ export default function WorkoutSession() {
             updateAt={updateAt}
             onCompleteAt={completeSetAt}
             onSkipAt={skipSetAt}
+            reorderMode={reorderMode}
+            onMoveExercise={moveExerciseInSession}
             togglePause={togglePause}
             renderTopBar={renderTopBar}
             missingAt={missingAt}
