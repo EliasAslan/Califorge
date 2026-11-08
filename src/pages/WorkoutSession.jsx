@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { useNavigate } from 'react-router-dom';
 import {
   X, Info, Check, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2,
-  StickyNote, ArrowLeftRight, Search, Plus, ArrowUpDown, Minus,
+  StickyNote, ArrowLeftRight, Search, Plus, ArrowUpDown, Minus, Clock3,
 } from 'lucide-react';
 import { categoryColor, getExercise, LIBRARY_EXERCISES, MODES } from '@/lib/programData';
 import { isExerciseEquipmentAvailable } from '@/lib/exerciseAdaptations';
@@ -818,40 +818,102 @@ export default function WorkoutSession() {
         >
           <X size={17} />
         </button>
-        {layout === 'list' && isRest && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setShowOverviewRestAdjust((open) => !open)}
-              aria-expanded={showOverviewRestAdjust}
-              aria-label={showOverviewRestAdjust ? 'Hide rest timer controls' : 'Adjust rest timer'}
-              className="flex h-8 items-center gap-1.5 rounded-full border border-[var(--console-line)] bg-[var(--console-surface-2)] px-2.5 text-[11px] font-semibold tabular-nums text-[var(--console-chalk)] transition-colors hover:border-[var(--console-steel)]"
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--console-signal)' }} />
-              {formatClock(Math.max(0, Math.ceil(((session.restEndsAt || Date.now()) - now) / 1000)) * 1000)}
-            </button>
-            {showOverviewRestAdjust && (
-              <div className="flex items-center gap-1 rounded-full border border-[var(--console-line)] bg-[var(--console-surface)] p-0.5">
-                <button
-                  type="button"
-                  onClick={() => adjustRest(-30)}
-                  aria-label="Reduce rest by 30 seconds"
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+        {layout === 'list' && isRest && (() => {
+          const remainingSec = Math.max(0, Math.ceil(((session.restEndsAt || Date.now()) - now) / 1000));
+          const plannedRestSec = Math.max(1, Number(session.exercises[session.cursor.exerciseIndex]?.restSec) || remainingSec || 1);
+          const restProgress = Math.min(1, Math.max(0, 1 - remainingSec / plannedRestSec));
+          return (
+            <div className="relative flex items-center">
+              <button
+                type="button"
+                onClick={() => setShowOverviewRestAdjust((open) => !open)}
+                aria-expanded={showOverviewRestAdjust}
+                aria-label={showOverviewRestAdjust ? 'Hide rest timer card' : 'Open rest timer controls'}
+                className="flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-bold tabular-nums transition-all duration-200"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--brand) 42%, transparent)',
+                  background: 'color-mix(in srgb, var(--brand) 16%, var(--console-surface))',
+                  color: 'var(--brand)',
+                  boxShadow: showOverviewRestAdjust ? '0 0 0 2px color-mix(in srgb, var(--brand) 16%, transparent)' : 'none',
+                }}
+              >
+                <Clock3 size={13} strokeWidth={2.3} />
+                {formatClock(remainingSec * 1000)}
+              </button>
+              {showOverviewRestAdjust && (
+                <div
+                  role="group"
+                  aria-label="Rest timer controls"
+                  className="console-menu-enter absolute left-0 top-10 z-50 w-[min(320px,calc(100vw-24px))] rounded-2xl border p-4 shadow-2xl shadow-black/50"
+                  style={{
+                    borderColor: 'color-mix(in srgb, var(--brand) 28%, var(--console-line))',
+                    background: 'var(--console-surface)',
+                  }}
                 >
-                  <Minus size={13} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => adjustRest(30)}
-                  aria-label="Add 30 seconds of rest"
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
-                >
-                  <Plus size={13} />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--brand)' }}>
+                      <Clock3 size={14} /> Rest timer
+                    </div>
+                    <span className="text-[10px] font-medium text-[var(--console-steel)]">Overview</span>
+                  </div>
+                  <div className="mt-3 text-center">
+                    <div className="text-[42px] font-extrabold leading-none tracking-[-0.055em] tabular-nums text-[var(--console-chalk)]">
+                      {formatClock(remainingSec * 1000)}
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full" style={{ background: 'var(--console-line)' }}>
+                      <div
+                        className="h-full rounded-full transition-[width] duration-300 ease-linear"
+                        style={{ width: `${restProgress * 100}%`, background: 'var(--brand)' }}
+                      />
+                    </div>
+                    <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-[var(--console-steel)]">
+                      <span>Rest progress</span>
+                      <span>{Math.round(restProgress * 100)}%</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => adjustRest(-30)}
+                      aria-label="Reduce rest by 30 seconds"
+                      className="flex h-11 items-center justify-center gap-2 rounded-xl border text-[13px] font-bold transition-transform active:scale-[0.97]"
+                      style={{
+                        borderColor: 'color-mix(in srgb, var(--brand) 36%, transparent)',
+                        background: 'color-mix(in srgb, var(--brand) 13%, var(--console-surface-2))',
+                        color: 'var(--brand)',
+                      }}
+                    >
+                      <Minus size={16} /> 30 sec
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => adjustRest(30)}
+                      aria-label="Add 30 seconds of rest"
+                      className="flex h-11 items-center justify-center gap-2 rounded-xl border text-[13px] font-bold transition-transform active:scale-[0.97]"
+                      style={{
+                        borderColor: 'color-mix(in srgb, var(--brand) 36%, transparent)',
+                        background: 'color-mix(in srgb, var(--brand) 13%, var(--console-surface-2))',
+                        color: 'var(--brand)',
+                      }}
+                    >
+                      <Plus size={16} /> 30 sec
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowOverviewRestAdjust(false);
+                      finishRest();
+                    }}
+                    className="mt-2 flex h-9 w-full items-center justify-center rounded-lg text-[11px] font-semibold text-[var(--console-steel)] transition-colors hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                  >
+                    Skip timer
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="min-w-0 flex-1 text-center">
