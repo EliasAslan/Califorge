@@ -18,7 +18,7 @@ function sameDay(a, b) {
     && a.getDate() === b.getDate();
 }
 
-export default function OverviewWidget({ sessions, currentWeek, programId, phase, className }) {
+export default function OverviewWidget({ sessions, currentWeek, programId, phase, onClick, className }) {
   const accent = categoryColor('pull');
   const schedule = getSchedule(programId);
   const consistency = getCycleConsistency(sessions, currentWeek, programId);
@@ -62,12 +62,16 @@ export default function OverviewWidget({ sessions, currentWeek, programId, phase
 
   return (
     <section
-      className={`rounded-2xl border border-border bg-gradient-to-br from-card to-card/60 p-4 sm:p-5 ${className || ''}`}
+      onClick={onClick}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick?.(); } }}
+      role="button"
+      tabIndex={0}
+      className={`h-[260px] min-h-[260px] rounded-2xl border border-border bg-gradient-to-br from-card to-card/60 p-4 sm:p-5 flex flex-col cursor-pointer transition-all hover:border-foreground/20 active:scale-[0.995] ${className || ''}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">Training overview</p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{phase.label}</h2>
             <span className="text-xs text-muted-foreground">Week {currentWeek} of 8</span>
           </div>
@@ -75,11 +79,11 @@ export default function OverviewWidget({ sessions, currentWeek, programId, phase
         <ChevronRight size={18} className="mt-1 shrink-0 text-muted-foreground" />
       </div>
 
-      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-border/70">
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border/70">
         <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, currentWeek / 8 * 100))}%`, background: accent }} />
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-1.5 sm:gap-2">
+      <div className="mt-1.5 grid grid-cols-7 gap-1.5 sm:gap-2">
         {days.map((day, i) => (
           <div key={day.label + i} className="flex min-w-0 flex-col items-center gap-1.5">
             <span className="text-[10px] font-semibold" style={{ color: day.today ? accent : 'hsl(var(--muted-foreground))' }}>{day.label}</span>
@@ -90,6 +94,7 @@ export default function OverviewWidget({ sessions, currentWeek, programId, phase
                 : day.rest
                   ? { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }
                   : { border: `1px solid ${day.today ? accent : 'hsl(var(--border))'}`, color: day.today ? accent : 'hsl(var(--muted-foreground))' }}
+              aria-label={`${day.label} ${day.date}: ${day.complete ? 'workout completed' : day.rest ? 'rest day' : 'no workout logged'}`}
             >
               {day.complete ? <Check size={14} strokeWidth={3} /> : day.rest ? <Minus size={13} /> : day.date}
             </span>
@@ -97,23 +102,20 @@ export default function OverviewWidget({ sessions, currentWeek, programId, phase
         ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-3 divide-x divide-border border-t border-border pt-3.5">
+      <div className="mt-1.5 grid grid-cols-3 divide-x divide-border border-t border-border pt-0">
         {stats.map(({ label, value, icon: Icon }) => (
           <div key={label} className="min-w-0 px-2 first:pl-0 last:pr-0">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Icon size={12} />
               <span className="truncate text-[10px] sm:text-[11px]">{label}</span>
             </div>
-            <p className="mt-1 text-base sm:text-lg font-bold leading-tight tnum">{value}</p>
+            <p className="mt-0.5 text-base sm:text-lg font-bold leading-tight tnum">{value}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-background/60 px-3 py-2.5">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold">Cycle consistency</p>
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Your progress through this training cycle</p>
-        </div>
+      <div className="mt-auto flex items-center justify-between gap-3 rounded-xl bg-background/60 px-3 py-0.5">
+        <p className="text-xs font-semibold">Cycle consistency</p>
         <span className="shrink-0 text-lg font-bold tnum">{consistency.percent}%</span>
       </div>
     </section>

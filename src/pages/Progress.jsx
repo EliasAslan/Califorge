@@ -1,102 +1,45 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Maximize } from 'lucide-react';
 import { useSessions, useBodyweightEntries } from '@/hooks/useTrainingData';
-import { loadSettings, loadCurrentWeek } from '@/lib/storage';
+import { loadCurrentWeek, loadSettings } from '@/lib/storage';
 import { getActiveProgramId } from '@/lib/programData';
-import {
-  getPhaseForWeek,
-  getWeeklyFocus,
-  getCycleWeeks,
-  getCycleConsistency,
-  getTrainingStats,
-} from '@/lib/trainingLogic';
+import { getPhaseForWeek, getWeeklyFocus } from '@/lib/trainingLogic';
 import OverviewWidget from '@/components/progress/OverviewWidget';
 import PhaseHistoryWidget from '@/components/progress/PhaseHistoryWidget';
 import SkillsWidget from '@/components/progress/SkillsWidget';
+import MuscleBalanceWidget from '@/components/progress/MuscleBalanceWidget';
 import PRsWidget from '@/components/progress/PRsWidget';
 import WeightWidget from '@/components/progress/WeightWidget';
-import MuscleBalanceWidget from '@/components/progress/MuscleBalanceWidget';
-import ConsistencyWidget from '@/components/progress/ConsistencyWidget';
-import TrainingTimeWidget from '@/components/progress/TrainingTimeWidget';
-import AttendanceCalendarWidget from '@/components/progress/AttendanceCalendarWidget';
-import ProgressDetailSheet from '@/components/progress/ProgressDetailSheet';
+import TimeTrendWidget from '@/components/progress/TimeTrendWidget';
+import AttendanceWidget from '@/components/progress/AttendanceWidget';
 
-// Fixed asymmetric bento layouts per program. Every widget is the same height;
-// only widths differ, so the dashboard never settles into a perfect grid.
-const LAYOUTS = {
-  skill_focus: [
-    { id: 'overview', colStart: 1, colSpan: 4, rowStart: 1 },
-    { id: 'cycle', colStart: 5, colSpan: 2, rowStart: 1 },
-    { id: 'skills', colStart: 1, colSpan: 3, rowStart: 2 },
-    { id: 'weight', colStart: 4, colSpan: 3, rowStart: 2 },
-    { id: 'prs', colStart: 1, colSpan: 2, rowStart: 3 },
-    { id: 'consistency', colStart: 3, colSpan: 2, rowStart: 3 },
-    { id: 'trainingTime', colStart: 5, colSpan: 2, rowStart: 3 },
-    { id: 'attendance', colStart: 1, colSpan: 6, rowStart: 4 },
-  ],
-  hypertrophy: [
-    { id: 'overview', colStart: 1, colSpan: 4, rowStart: 1 },
-    { id: 'cycle', colStart: 5, colSpan: 2, rowStart: 1 },
-    { id: 'muscles', colStart: 1, colSpan: 3, rowStart: 2 },
-    { id: 'skills', colStart: 4, colSpan: 3, rowStart: 2 },
-    { id: 'weight', colStart: 1, colSpan: 3, rowStart: 3 },
-    { id: 'trainingTime', colStart: 4, colSpan: 3, rowStart: 3 },
-    { id: 'prs', colStart: 1, colSpan: 2, rowStart: 4 },
-    { id: 'consistency', colStart: 3, colSpan: 2, rowStart: 4 },
-    { id: 'attendance', colStart: 5, colSpan: 2, rowStart: 4 },
-  ],
-};
+const SIZE_CLASS = { full: 'col-span-6', lg: 'col-span-4', sm: 'col-span-2' };
 
-const WIDGET_LABELS = {
-  overview: 'Training overview',
-  cycle: 'Cycle volume',
-  muscles: 'Muscle volume',
-  skills: 'Skill tree',
-  prs: 'Personal records',
-  weight: 'Bodyweight',
-  consistency: 'Cycle consistency',
-  trainingTime: 'Training time',
-  attendance: 'Attendance',
-};
-
-// Where the "View full details" button inside a widget's expanded sheet goes.
-const WIDGET_ROUTES = {
-  overview: '/progress/week',
-  cycle: '/progress/phase',
-  muscles: '/progress/muscle-balance',
-  skills: '/progress/skills',
-  prs: '/progress/records',
-  weight: '/progress/weight',
-  consistency: '/progress/habits',
-  trainingTime: null,
-  attendance: '/history',
-};
-
-const renderWidget = (id, props) => {
-  switch (id) {
-    case 'overview':
-      return <OverviewWidget {...props} />;
-    case 'cycle':
-      return <PhaseHistoryWidget {...props} />;
-    case 'muscles':
-      return <MuscleBalanceWidget {...props} />;
-    case 'skills':
-      return <SkillsWidget {...props} />;
-    case 'prs':
-      return <PRsWidget {...props} />;
-    case 'weight':
-      return <WeightWidget {...props} />;
-    case 'consistency':
-      return <ConsistencyWidget {...props} />;
-    case 'trainingTime':
-      return <TrainingTimeWidget {...props} />;
-    case 'attendance':
-      return <AttendanceCalendarWidget {...props} />;
-    default:
-      return null;
-  }
-};
+// Fixed per-program dashboard layout. Rows hold one full-width tile or a pair
+// of tiles. Pairs use staggered widths (2/3 + 1/3) so the dashboard reads as
+// asymmetric instead of a perfect grid, while every tile keeps one shared height.
+function layoutRows(programId) {
+  const liftPair = programId === 'hypertrophy'
+    ? [
+      { id: 'muscles', size: 'lg' },
+      { id: 'prs', size: 'sm' },
+    ]
+    : [
+      { id: 'skills', size: 'lg' },
+      { id: 'prs', size: 'sm' },
+    ];
+  const trendPair = [
+    { id: 'attendance', size: 'sm' },
+    { id: 'weight', size: 'lg' },
+  ];
+  return [
+    [{ id: 'overview', size: 'full' }],
+    [{ id: 'phase', size: 'full' }],
+    liftPair,
+    trendPair,
+    [{ id: 'time', size: 'full' }],
+  ];
+}
 
 export default function Progress() {
   const navigate = useNavigate();
@@ -107,95 +50,50 @@ export default function Progress() {
   const currentWeek = loadCurrentWeek(programId);
   const phase = getPhaseForWeek(currentWeek, programId);
   const focus = getWeeklyFocus(currentWeek, programId);
-  const isHypertrophy = programId === 'hypertrophy';
+  const rows = layoutRows(programId);
 
-  const [sheetId, setSheetId] = useState(null);
-
-  const layout = useMemo(() => LAYOUTS[isHypertrophy ? 'hypertrophy' : 'skill_focus'], [isHypertrophy]);
-
-  const commonProps = {
-    sessions,
-    currentWeek,
-    programId,
-    phase,
-    bodyweightEntries,
-    unit: units,
-    onWeekClick: (week) => navigate(`/progress/phase?week=${week}`),
-  };
-
-  const openSheet = (id) => setSheetId(id);
-  const closeSheet = () => setSheetId(null);
-
-  const openWidget = (id) => {
-    const route = WIDGET_ROUTES[id];
-    if (route) navigate(route);
+  const renderWidget = (id) => {
+    switch (id) {
+      case 'overview': return <OverviewWidget sessions={sessions} currentWeek={currentWeek} programId={programId} phase={phase} onClick={() => navigate('/progress/week')} />;
+      case 'phase': return <PhaseHistoryWidget sessions={sessions} currentWeek={currentWeek} programId={programId} onWeekClick={(week) => navigate(`/progress/phase?week=${week}`)} />;
+      case 'muscles': return <MuscleBalanceWidget sessions={sessions} currentWeek={currentWeek} programId={programId} onClick={() => navigate('/progress/muscle-balance')} />;
+      case 'skills': return <SkillsWidget sessions={sessions} onClick={() => navigate('/progress/skills')} />;
+      case 'prs': return <PRsWidget sessions={sessions} onClick={() => navigate('/progress/records')} />;
+      case 'weight': return <WeightWidget entries={bodyweightEntries} unit={units} onClick={() => navigate('/progress/weight')} />;
+      case 'time': return <TimeTrendWidget sessions={sessions} programId={programId} currentWeek={currentWeek} />;
+      case 'attendance': return <AttendanceWidget sessions={sessions} programId={programId} />;
+      default: return null;
+    }
   };
 
   return (
     <main className="px-4 sm:px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-8">
       <header className="mb-4 sm:mb-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">Your training cycle</p>
-            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
-              <span className="text-xs text-muted-foreground">Week {currentWeek} / 8</span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">{focus.focus}</p>
-          </div>
-          <button type="button" onClick={() => navigate('/plan')} className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-muted">
-            <Maximize size={17} />
-          </button>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">Your training cycle</p>
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
+          <span className="text-xs text-muted-foreground">Week {currentWeek} / 8</span>
         </div>
+        <p className="mt-1 text-sm text-muted-foreground">{focus.focus}</p>
       </header>
 
-      <div className="grid grid-cols-6 gap-2.5 sm:gap-4" style={{ gridAutoRows: '184px' }}>
-        {layout.map((slot) => {
-          const Widget = renderWidget(slot.id, commonProps);
-          if (!Widget) return null;
-          return (
-            <div
-              key={slot.id}
-              className={`col-start-${slot.colStart} col-span-${slot.colSpan} row-start-${slot.rowStart} min-w-0 overflow-hidden rounded-2xl border border-border bg-card/50 p-3 sm:p-4 cursor-pointer transition-colors hover:bg-card/70`}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openSheet(slot.id);
-                }
-              }}
-              onClick={() => openSheet(slot.id)}
-            >
-              <div className="flex items-start justify-between">
-                <p className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">{WIDGET_LABELS[slot.id]}</p>
-                <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+      <div className="grid grid-cols-6 gap-2.5 sm:gap-4">
+        {rows.map((row, rowIndex) => (
+          <React.Fragment key={rowIndex}>
+            {row.length > 1 ? (
+              row.map((item) => (
+                <div key={item.id} className={SIZE_CLASS[item.size]}>
+                  {renderWidget(item.id)}
+                </div>
+              ))
+            ) : (
+              <div key={row[0].id} className={SIZE_CLASS[row[0].size]}>
+                {renderWidget(row[0].id)}
               </div>
-              <div className="mt-auto flex items-end justify-between gap-2">
-                {Widget}
-                <button type="button" aria-label="Open details" className="rounded-full border border-border bg-background/80 p-1.5 hover:bg-muted" onClick={(e) => { e.stopPropagation(); openSheet(slot.id); }}>
-                  <Maximize size={12} className="text-[10px]" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
+            )}
+          </React.Fragment>
+        ))}
       </div>
-
-      {sheetId && (
-        <ProgressDetailSheet
-          id={sheetId}
-          sessions={sessions}
-          bodyweightEntries={bodyweightEntries}
-          units={units}
-          programId={programId}
-          currentWeek={currentWeek}
-          phase={phase}
-          focus={focus}
-          onClose={closeSheet}
-          onOpenFull={openWidget}
-        />
-      )}
     </main>
   );
 }

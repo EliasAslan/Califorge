@@ -3,7 +3,7 @@ import { ChevronRight, Scale } from 'lucide-react';
 
 const displayWeight = (kg, unit) => unit === 'lb' ? kg * 2.2046226218 : kg;
 
-export default function WeightWidget({ entries = [], unit = 'kg', className = '' }) {
+export default function WeightWidget({ entries = [], unit = 'kg', onClick, className = '' }) {
   const latest = entries[entries.length - 1];
   const previous = entries.length > 1 ? entries[entries.length - 2] : null;
   const currentValue = latest ? displayWeight(latest.weightKg, unit) : null;
@@ -21,16 +21,17 @@ export default function WeightWidget({ entries = [], unit = 'kg', className = ''
   return (
     <button
       type="button"
-      className={`flex h-[184px] min-h-[184px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/45 p-3 sm:p-4 text-left transition-colors hover:bg-card/70 active:scale-[0.99] ${className}`}
+      onClick={onClick}
+      className={`flex h-[224px] min-h-[224px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/45 p-2.5 text-left transition-colors hover:bg-card/75 active:scale-[0.99] ${className}`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"><Scale size={13} /> Bodyweight</span>
-        <ChevronRight size={15} className="mt-0.5 text-muted-foreground shrink-0" />
+        <ChevronRight size={15} className="text-muted-foreground" />
       </div>
       {latest ? (
         <div className="mt-auto flex items-end justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[24px] font-bold leading-none tracking-tight tabular-nums">{currentValue.toFixed(1)} <span className="text-[11px] font-semibold text-muted-foreground">{unit}</span></p>
+            <p className="text-[28px] font-extrabold leading-none tracking-tight tabular-nums">{currentValue.toFixed(1)} <span className="text-[12px] font-bold text-muted-foreground">{unit}</span></p>
             <p className="mt-1.5 text-[9px] text-muted-foreground">
               {change == null ? 'First entry' : `${change > 0 ? '+' : ''}${change.toFixed(1)} ${unit} since last`}
             </p>
@@ -42,7 +43,7 @@ export default function WeightWidget({ entries = [], unit = 'kg', className = ''
           )}
         </div>
       ) : (
-        <div className="mt-auto flex flex-col items-center justify-center text-center">
+        <div className="mt-auto">
           <p className="text-lg font-bold">Add your weight</p>
           <p className="mt-1 text-[10px] text-muted-foreground">Track changes over time</p>
         </div>
