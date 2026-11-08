@@ -230,7 +230,7 @@ export default function Profile() {
       </SettingsSection>
 
       <SettingsSection icon={Volume2} title="Training preferences" subtitle="Small details that make sessions feel right.">
-        <div className="divide-y divide-border/70">
+        <div>
           <ToggleRow label="Workout notifications" description="Reminders for planned sessions" value={settings.notifications} onChange={(value) => update({ notifications: value })} />
           <ToggleRow label="Interface sounds" description="Soft cues for selections and completed sets" value={settings.interfaceSound} onChange={(value) => update({ interfaceSound: value })} />
           <ToggleRow label="Interface haptics" description="Subtle feedback for key actions" value={settings.interfaceHaptics} onChange={(value) => update({ interfaceHaptics: value })} icon={Vibrate} />
@@ -339,6 +339,7 @@ function ToggleRow({ label, description, value, onChange, icon: Icon = Check }) 
       onClick={() => onChange(!value)}
       className="apex-toggle-row"
     >
+      <span className="apex-toggle-icon" aria-hidden="true"><Icon size={16} /></span>
       <span className="min-w-0 flex-1 text-left">
         <span className="block text-sm font-semibold">{label}</span>
         <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{description}</span>
