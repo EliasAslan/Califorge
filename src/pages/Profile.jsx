@@ -331,15 +331,22 @@ function UnitToggle({ value, onChange }) {
 
 function ToggleRow({ label, description, value, onChange, icon: Icon = Check }) {
   return (
-    <div className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{label}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">{description}</p>
-      </div>
-      <button type="button" role="switch" aria-checked={!!value} aria-label={label} onClick={() => onChange(!value)} className={`apex-switch ${value ? 'is-on' : ''}`}>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={!!value}
+      aria-label={`${label}: ${value ? 'On' : 'Off'}`}
+      onClick={() => onChange(!value)}
+      className="apex-toggle-row"
+    >
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-sm font-semibold">{label}</span>
+        <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{description}</span>
+      </span>
+      <span className={`apex-switch ${value ? 'is-on' : ''}`} aria-hidden="true">
         <span />
-      </button>
-    </div>
+      </span>
+    </button>
   );
 }
 
