@@ -137,7 +137,7 @@ export const EXERCISES = {
   }),
   pa_deficitpu: E({
     id: 'pa_deficitpu', name: 'Deficit Push-ups', variation: 'On Parallettes',
-    visualId: 'pushup', category: 'push', type: 'reps',
+    visualId: 'deficitpushup', category: 'push', type: 'reps',
     sets: 3, targetReps: [8, 12], restSec: 120, rir: '2–3',
     equipment: ['Parallettes'], muscles: ['Chest', 'Shoulders', 'Triceps'],
     difficulty: 'Intermediate', progression: 'Increase deficit depth',
@@ -145,7 +145,7 @@ export const EXERCISES = {
   }),
   pa_ringdips: E({
     id: 'pa_ringdips', name: 'Ring Dips', variation: 'Rings',
-    visualId: 'dip', category: 'push', type: 'reps',
+    visualId: 'ringdip', category: 'push', type: 'reps',
     sets: 3, targetReps: [8, 10], restSec: 120, rir: '2',
     equipment: ['Rings'], muscles: ['Triceps', 'Chest', 'Shoulders'],
     difficulty: 'Advanced', progression: 'Add weight / RTO',
@@ -275,7 +275,7 @@ export const EXERCISES = {
   }),
   pb_ringpu: E({
     id: 'pb_ringpu', name: 'Ring Push-ups', variation: 'Feet Elevated',
-    visualId: 'ringpushup', category: 'push', type: 'reps',
+    visualId: 'declinepushup', category: 'push', type: 'reps',
     sets: 3, targetReps: [10, 12], restSec: 90, rir: '3',
     equipment: ['Rings'], muscles: ['Chest', 'Shoulders', 'Triceps', 'Core'],
     difficulty: 'Intermediate', progression: 'Deeper ROM / RTO',
@@ -345,7 +345,7 @@ export const EXERCISES = {
   }),
   alt_pike_pushup: E({
     id: 'alt_pike_pushup', name: 'Pike Push-up', variation: 'Elevated feet',
-    visualId: 'hspu', category: 'push', type: 'reps',
+    visualId: 'pikepushup', category: 'push', type: 'reps',
     sets: 4, targetReps: [6, 10], restSec: 120, rir: '2',
     equipment: ['Floor'], muscles: ['Shoulders', 'Triceps', 'Upper chest'],
     difficulty: 'Intermediate', progression: 'Elevate feet → deficit',
@@ -436,7 +436,7 @@ export const EXERCISES = {
   }),
   h_hanging_knee: E({
     id: 'h_hanging_knee', name: 'Hanging Knee Raises', variation: 'Bar',
-    visualId: 'legraise', category: 'core', type: 'reps',
+    visualId: 'hanging_knee', category: 'core', type: 'reps',
     sets: 3, targetReps: [12, 15], restSec: 75, rir: '2',
     equipment: ['Pull-up bar'], muscles: ['Core', 'Hip flexors'],
     difficulty: 'Beginner', progression: 'Straighten legs → toes-to-bar',
@@ -446,7 +446,7 @@ export const EXERCISES = {
   // ── Upper B ──
   h_ring_dip: E({
     id: 'h_ring_dip', name: 'Ring Dips', variation: 'RTO',
-    visualId: 'dip', category: 'push', type: 'reps',
+    visualId: 'ringdip', category: 'push', type: 'reps',
     sets: 3, targetReps: [6, 10], restSec: 120, rir: '2',
     equipment: ['Rings'], muscles: ['Triceps', 'Chest', 'Shoulders'],
     difficulty: 'Advanced', progression: 'Add weight / RTO hold',
@@ -455,7 +455,7 @@ export const EXERCISES = {
   }),
   h_chair_dip: E({
     id: 'h_chair_dip', name: 'Chair Dips', variation: 'Feet supported',
-    visualId: 'dip', category: 'push', type: 'reps',
+    visualId: 'chairdip', category: 'push', type: 'reps',
     sets: 3, targetReps: [8, 15], restSec: 90, rir: '2',
     equipment: ['Stable chair', 'Floor'], muscles: ['Triceps', 'Chest', 'Shoulders'],
     difficulty: 'Beginner', progression: 'Straighter legs / slower tempo',
@@ -463,7 +463,7 @@ export const EXERCISES = {
   }),
   h_chinup: E({
     id: 'h_chinup', name: 'Chin-ups', variation: 'Shoulder-width, supinated',
-    visualId: 'pullup', category: 'pull', type: 'weighted',
+    visualId: 'chinup', category: 'pull', type: 'weighted',
     sets: 3, targetReps: [6, 10], restSec: 120, rir: '2',
     equipment: ['Pull-up bar', 'Backpack (optional)'], muscles: ['Lats', 'Biceps', 'Forearms'],
     difficulty: 'Intermediate', progression: 'Add load when top reps hit',
@@ -471,7 +471,7 @@ export const EXERCISES = {
   }),
   h_feet_elev_row: E({
     id: 'h_feet_elev_row', name: 'Feet-elevated Ring Rows', variation: 'Horizontal',
-    visualId: 'ringrow', category: 'pull', type: 'reps',
+    visualId: 'feet_elev_row', category: 'pull', type: 'reps',
     sets: 3, targetReps: [8, 12], restSec: 90, rir: '2',
     equipment: ['Rings'], muscles: ['Lats', 'Rear delts', 'Rhomboids', 'Biceps'],
     difficulty: 'Intermediate', progression: 'Add weight / pause',
@@ -479,7 +479,7 @@ export const EXERCISES = {
   }),
   h_deep_pp_pushup: E({
     id: 'h_deep_pp_pushup', name: 'Deep Parallette Push-ups', variation: 'Full ROM',
-    visualId: 'pushup', category: 'push', type: 'reps',
+    visualId: 'deficitpushup', category: 'push', type: 'reps',
     sets: 3, targetReps: [8, 12], restSec: 90, rir: '2',
     equipment: ['Parallettes'], muscles: ['Chest', 'Shoulders', 'Triceps'],
     difficulty: 'Intermediate', progression: 'Add load / RTO / deficit',
@@ -487,7 +487,7 @@ export const EXERCISES = {
   }),
   h_support_hold: E({
     id: 'h_support_hold', name: 'Ring Support Hold', variation: 'RTO',
-    visualId: 'dip', category: 'push', type: 'hold',
+    visualId: 'ringsupport', category: 'push', type: 'hold',
     sets: 3, targetSec: [20, 40], restSec: 90, rpe: '7',
     equipment: ['Rings'], muscles: ['Shoulders', 'Triceps', 'Chest'],
     difficulty: 'Intermediate', progression: 'Longer hold / RTO / support to dip',
@@ -497,7 +497,7 @@ export const EXERCISES = {
   // ── Lower B ──
   h_weighted_stepup: E({
     id: 'h_weighted_stepup', name: 'Weighted Step-ups', variation: 'Backpack / DB',
-    visualId: 'splitsquat', category: 'legs', type: 'weighted',
+    visualId: 'stepup', category: 'legs', type: 'weighted',
     sets: 3, targetReps: [8, 10], perSide: true, restSec: 120, rir: '2',
     equipment: ['Box / Bench', 'Backpack', 'Dumbbells'], muscles: ['Quads', 'Glutes', 'Hamstrings'],
     difficulty: 'Intermediate', progression: 'Higher step / add load',
@@ -513,7 +513,7 @@ export const EXERCISES = {
   }),
   h_bent_knee_calf: E({
     id: 'h_bent_knee_calf', name: 'Bent-knee Calf Raises', variation: 'Seated / DB',
-    visualId: 'calf', category: 'legs', type: 'reps',
+    visualId: 'bent_knee_calf', category: 'legs', type: 'reps',
     sets: 3, targetReps: [12, 15], restSec: 60, rir: '2',
     equipment: ['Dumbbells', 'Step'], muscles: ['Soleus', 'Calves'],
     difficulty: 'Beginner', progression: 'Add load / pause',
