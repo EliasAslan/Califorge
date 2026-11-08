@@ -269,6 +269,19 @@ export default function Profile() {
             })}
           </div>
         </div>
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Workout illustration style</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => update({ workoutVisualMode: 'badge' })} aria-pressed={(settings.workoutVisualMode || 'badge') === 'badge'} className={`p-3 rounded-xl border text-left transition-all ${(settings.workoutVisualMode || 'badge') === 'badge' ? 'border-brand bg-card shadow-sm ring-1 ring-brand/30' : 'border-border bg-card/40 opacity-75 hover:opacity-100'}`}>
+              <span className="block text-sm font-semibold">Hero Badge</span>
+              <span className="block text-[11px] text-muted-foreground mt-0.5">High-contrast card beside title</span>
+            </button>
+            <button type="button" onClick={() => update({ workoutVisualMode: 'watermark' })} aria-pressed={settings.workoutVisualMode === 'watermark'} className={`p-3 rounded-xl border text-left transition-all ${settings.workoutVisualMode === 'watermark' ? 'border-brand bg-card shadow-sm ring-1 ring-brand/30' : 'border-border bg-card/40 opacity-75 hover:opacity-100'}`}>
+              <span className="block text-sm font-semibold">Watermark</span>
+              <span className="block text-[11px] text-muted-foreground mt-0.5">Graphic behind exercise title</span>
+            </button>
+          </div>
+        </div>
       </SettingsSection>
 
       <SettingsSection icon={Wrench} title="Tools" subtitle="Utilities for building your own training sessions.">
