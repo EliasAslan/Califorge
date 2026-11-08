@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
 import { getCycleConsistency } from '@/lib/trainingLogic';
 
 // Warm minimal consistency widget: one big percentage number with a subtle ring.

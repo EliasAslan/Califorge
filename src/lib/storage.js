@@ -113,6 +113,7 @@ export const DEFAULT_SETTINGS = {
   theme: 'dark',
   accent: 'blue',
   activeProgram: 'skill',
+  workoutVisualMode: 'badge',
   enjoyment: {}, // { [exerciseId]: 1–5 }
 };
 

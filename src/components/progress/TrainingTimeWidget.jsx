@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Clock } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { getCycleWeeks } from '@/lib/trainingLogic';
 
 // Training time trend: minutes trained per week across the cycle.

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 // Attendance calendar: small date cells showing which days had training in the last 30 days.
 export default function AttendanceCalendarWidget({ sessions, className }) {

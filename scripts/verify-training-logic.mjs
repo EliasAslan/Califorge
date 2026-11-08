@@ -108,6 +108,7 @@ try {
   ];
   assert.equal(logic.getPhaseCompletion(weekEight, 8, 'skill').complete, true);
   assert.equal(logic.getRequiredWorkoutsPerWeek('hypertrophy'), 3);
+  storage.saveCurrentWeek(8, 'hypertrophy');
   assert.equal(logic.getPhaseCompletion([completedSession('upper_a', 8), completedSession('upper_b', 8), completedSession('lower_a', 8)], 8, 'hypertrophy').complete, true);
   assert.equal(logic.getPhaseCompletion([completedSession('upper_a', 8), completedSession('upper_b', 8)], 8, 'hypertrophy'), null);
 

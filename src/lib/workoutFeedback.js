@@ -25,12 +25,13 @@ const playTones = (notes) => {
   if (!context) return;
   try {
     const startAt = context.currentTime;
-    notes.forEach(({ frequency, delay = 0, duration = 0.07, volume = 0.03 }) => {
+    notes.forEach((note) => {
+      const { frequency, delay = 0, duration = 0.07, volume = 0.03, type = 'sine' } = note;
       const oscillator = context.createOscillator();
       const gain = context.createGain();
       const start = startAt + delay;
       const end = start + duration;
-      oscillator.type = note.type || 'sine';
+      oscillator.type = type;
       oscillator.frequency.setValueAtTime(frequency, start);
       gain.gain.setValueAtTime(0.0001, start);
       gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), start + 0.012);

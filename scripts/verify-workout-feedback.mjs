@@ -58,7 +58,7 @@ assert.equal(vibrationCalls.length, 1, 'rest vibration setting must remain indep
 saveSettings({ ...loadSettings(), restSound: true, restVibration: true });
 playRestCompleteSound();
 vibrate([120, 60, 120]);
-assert.equal(oscillatorCount, 4, 'rest chime should still work when interface sounds are disabled');
+assert.equal(oscillatorCount, 5, 'rest chime should still work when interface sounds are disabled');
 assert.deepEqual(vibrationCalls[1], [120, 60, 120], 'rest vibration should still work when interface haptics are disabled');
 
 console.log('APEX workout feedback checks passed.');

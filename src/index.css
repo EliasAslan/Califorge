@@ -561,13 +561,63 @@
 }
 .console-watermark {
   position: absolute;
-  top: -6px;
-  right: -18px;
-  width: 168px;
-  height: 168px;
+  top: -10px;
+  right: -10px;
+  width: 195px;
+  height: 195px;
   color: var(--console-chalk);
-  opacity: 0.1;
-  pointer-events: none;
+  opacity: 0.32;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+.console-watermark:hover {
+  opacity: 0.45;
+  transform: scale(1.02);
+}
+html.theme-light .console-watermark {
+  opacity: 0.28;
+  color: var(--foreground);
+}
+html.theme-light .console-watermark:hover {
+  opacity: 0.38;
+}
+
+.console-hero-body {
+  position: relative;
+  z-index: 1;
+}
+
+.console-hero-with-badge {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.console-hero-badge {
+  width: clamp(80px, 22vw, 94px);
+  height: clamp(80px, 22vw, 94px);
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--console-signal, var(--brand)) 40%, var(--console-line-strong));
+  background: radial-gradient(130% 100% at 50% 0%, color-mix(in srgb, var(--console-signal, var(--brand)) 14%, var(--card)), var(--card) 75%);
+  box-shadow: 0 8px 24px -4px color-mix(in srgb, var(--console-signal, var(--brand)) 22%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.console-hero-badge:hover {
+  transform: scale(1.04);
+  border-color: color-mix(in srgb, var(--console-signal, var(--brand)) 65%, var(--console-line-strong));
+  box-shadow: 0 10px 28px -2px color-mix(in srgb, var(--console-signal, var(--brand)) 32%, transparent);
+}
+.console-hero-badge:active {
+  transform: scale(0.96);
 }
 
 .console-readout-row {
