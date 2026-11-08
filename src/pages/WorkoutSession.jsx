@@ -105,8 +105,12 @@ export default function WorkoutSession() {
     }
     // don't count time the app was closed as active training
     if (stored.resumeAt && !stored.paused) {
-      stored.resumeAt = Date.now();
-      startExerciseClock(stored, stored.cursor?.exerciseIndex ?? 0);
+      const resumedAt = Date.now();
+      stored.resumeAt = resumedAt;
+      const activeExercise = stored.exercises?.[stored.cursor?.exerciseIndex ?? 0];
+      if (activeExercise?.sets?.some((set) => !set.completed)) {
+        activeExercise.timingStartedAt = resumedAt;
+      }
     }
     setSession(stored);
     setLoaded(true);
@@ -157,6 +161,7 @@ export default function WorkoutSession() {
         if (!prev || prev.paused || !prev.resumeAt || !prev.lastActivityAt) return prev;
         if (Date.now() - prev.lastActivityAt > STALE_MS) {
           const next = structuredClone(prev);
+          stopExerciseClock(next, prev.cursor?.exerciseIndex ?? 0, prev.lastActivityAt);
           next.activeMs = (next.activeMs || 0) + Math.max(0, prev.lastActivityAt - prev.resumeAt);
           next.resumeAt = null;
           next.paused = true;
