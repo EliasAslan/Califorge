@@ -18,7 +18,7 @@ function sameDay(a, b) {
     && a.getDate() === b.getDate();
 }
 
-export default function OverviewWidget({ sessions, currentWeek, programId, phase, onClick, className }) {
+export default function OverviewWidget({ sessions, currentWeek, programId, phase, className }) {
   const accent = categoryColor('pull');
   const schedule = getSchedule(programId);
   const consistency = getCycleConsistency(sessions, currentWeek, programId);
@@ -62,11 +62,7 @@ export default function OverviewWidget({ sessions, currentWeek, programId, phase
 
   return (
     <section
-      onClick={onClick}
-      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick?.(); } }}
-      role="button"
-      tabIndex={0}
-      className={`rounded-2xl border border-border bg-gradient-to-br from-card to-card/60 p-4 sm:p-5 cursor-pointer transition-all hover:border-foreground/20 active:scale-[0.995] ${className || ''}`}
+      className={`rounded-2xl border border-border bg-gradient-to-br from-card to-card/60 p-4 sm:p-5 ${className || ''}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -94,7 +90,6 @@ export default function OverviewWidget({ sessions, currentWeek, programId, phase
                 : day.rest
                   ? { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }
                   : { border: `1px solid ${day.today ? accent : 'hsl(var(--border))'}`, color: day.today ? accent : 'hsl(var(--muted-foreground))' }}
-              aria-label={`${day.label} ${day.date}: ${day.complete ? 'workout completed' : day.rest ? 'rest day' : 'no workout logged'}`}
             >
               {day.complete ? <Check size={14} strokeWidth={3} /> : day.rest ? <Minus size={13} /> : day.date}
             </span>

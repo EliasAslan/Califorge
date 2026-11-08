@@ -2,16 +2,13 @@ import React from 'react';
 import { ChevronRight, Trophy } from 'lucide-react';
 import { countPersonalRecords, getAllPersonalRecords } from '@/lib/trainingLogic';
 
-export default function PRsWidget({ sessions, onClick, className }) {
+export default function PRsWidget({ sessions, className }) {
   const count = countPersonalRecords(sessions);
   const recent = getAllPersonalRecords(sessions).slice(0, 1);
 
   return (
     <div
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      className={`h-[184px] min-h-[184px] rounded-2xl border border-border bg-card/50 p-2.5 sm:p-4 active:scale-[0.99] transition-transform cursor-pointer flex flex-col items-start justify-between gap-2 ${className || ''}`}
+      className={`h-[184px] min-h-[184px] rounded-2xl border border-border bg-card/50 p-3 sm:p-4 flex flex-col items-start justify-between gap-2 ${className || ''}`}
     >
       <div className="flex w-full items-center justify-between gap-1">
         <div className="flex items-center gap-2">
@@ -26,7 +23,7 @@ export default function PRsWidget({ sessions, onClick, className }) {
           <span className="text-xs text-muted-foreground">records</span>
         </div>
         {recent[0] && (
-          <p className="text-[9px] text-muted-foreground mt-1 truncate">
+          <p className="text-[9px] text-muted-foreground mt-2 truncate">
             <span className="font-semibold text-foreground">{recent[0].record.label}</span> · {recent[0].name}
           </p>
         )}

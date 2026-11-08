@@ -1,48 +1,102 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Check, Plus, X, Layers, Ungroup, ChevronLeft, ChevronRight, Minus, Maximize2 } from 'lucide-react';
+import { ChevronRight, Maximize } from 'lucide-react';
 import { useSessions, useBodyweightEntries } from '@/hooks/useTrainingData';
-import { loadCurrentWeek, loadSettings } from '@/lib/storage';
+import { loadSettings, loadCurrentWeek } from '@/lib/storage';
 import { getActiveProgramId } from '@/lib/programData';
-import { getPhaseForWeek, getWeeklyFocus } from '@/lib/trainingLogic';
+import {
+  getPhaseForWeek,
+  getWeeklyFocus,
+  getCycleWeeks,
+  getCycleConsistency,
+  getTrainingStats,
+} from '@/lib/trainingLogic';
 import OverviewWidget from '@/components/progress/OverviewWidget';
 import PhaseHistoryWidget from '@/components/progress/PhaseHistoryWidget';
 import SkillsWidget from '@/components/progress/SkillsWidget';
-import MuscleBalanceWidget from '@/components/progress/MuscleBalanceWidget';
 import PRsWidget from '@/components/progress/PRsWidget';
 import WeightWidget from '@/components/progress/WeightWidget';
+import MuscleBalanceWidget from '@/components/progress/MuscleBalanceWidget';
+import ConsistencyWidget from '@/components/progress/ConsistencyWidget';
+import TrainingTimeWidget from '@/components/progress/TrainingTimeWidget';
+import AttendanceCalendarWidget from '@/components/progress/AttendanceCalendarWidget';
+import ProgressDetailSheet from '@/components/progress/ProgressDetailSheet';
 
-const WIDGETS = [
-  { id: 'overview', label: 'Training overview', defaultSize: 'full' },
-  { id: 'phase', label: 'Cycle volume', defaultSize: 'full' },
-  { id: 'muscles', label: 'Muscle volume', defaultSize: 'half', program: 'hypertrophy' },
-  { id: 'skills', label: 'Skill tree', defaultSize: 'third' },
-  { id: 'prs', label: 'Personal records', defaultSize: 'third' },
-  { id: 'weight', label: 'Bodyweight', defaultSize: 'third' },
-];
-const SIZE_ORDER = ['third', 'half', 'full'];
-const SIZE_CLASS = { third: 'col-span-2', half: 'col-span-3', full: 'col-span-6' };
-const STORAGE_KEY = 'cali.v1.progressLayout';
+// Fixed asymmetric bento layouts per program. Every widget is the same height;
+// only widths differ, so the dashboard never settles into a perfect grid.
+const LAYOUTS = {
+  skill_focus: [
+    { id: 'overview', colStart: 1, colSpan: 4, rowStart: 1 },
+    { id: 'cycle', colStart: 5, colSpan: 2, rowStart: 1 },
+    { id: 'skills', colStart: 1, colSpan: 3, rowStart: 2 },
+    { id: 'weight', colStart: 4, colSpan: 3, rowStart: 2 },
+    { id: 'prs', colStart: 1, colSpan: 2, rowStart: 3 },
+    { id: 'consistency', colStart: 3, colSpan: 2, rowStart: 3 },
+    { id: 'trainingTime', colStart: 5, colSpan: 2, rowStart: 3 },
+    { id: 'attendance', colStart: 1, colSpan: 6, rowStart: 4 },
+  ],
+  hypertrophy: [
+    { id: 'overview', colStart: 1, colSpan: 4, rowStart: 1 },
+    { id: 'cycle', colStart: 5, colSpan: 2, rowStart: 1 },
+    { id: 'muscles', colStart: 1, colSpan: 3, rowStart: 2 },
+    { id: 'skills', colStart: 4, colSpan: 3, rowStart: 2 },
+    { id: 'weight', colStart: 1, colSpan: 3, rowStart: 3 },
+    { id: 'trainingTime', colStart: 4, colSpan: 3, rowStart: 3 },
+    { id: 'prs', colStart: 1, colSpan: 2, rowStart: 4 },
+    { id: 'consistency', colStart: 3, colSpan: 2, rowStart: 4 },
+    { id: 'attendance', colStart: 5, colSpan: 2, rowStart: 4 },
+  ],
+};
 
-function defaultLayout(isHypertrophy) {
-  return [
-    { type: 'widget', id: 'overview', size: 'full' },
-    { type: 'widget', id: 'phase', size: 'full' },
-    ...(isHypertrophy ? [{ type: 'widget', id: 'muscles', size: 'half' }, { type: 'widget', id: 'skills', size: 'half' }, { type: 'widget', id: 'prs', size: 'half' }, { type: 'widget', id: 'weight', size: 'half' }] : [
-      { type: 'widget', id: 'skills', size: 'third' },
-      { type: 'widget', id: 'prs', size: 'third' },
-      { type: 'widget', id: 'weight', size: 'third' },
-    ]),
-  ];
-}
+const WIDGET_LABELS = {
+  overview: 'Training overview',
+  cycle: 'Cycle volume',
+  muscles: 'Muscle volume',
+  skills: 'Skill tree',
+  prs: 'Personal records',
+  weight: 'Bodyweight',
+  consistency: 'Cycle consistency',
+  trainingTime: 'Training time',
+  attendance: 'Attendance',
+};
 
-function readLayout(programId, isHypertrophy) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(`${STORAGE_KEY}.${programId}`));
-    if (Array.isArray(saved) && saved.length) return saved;
-  } catch { /* use defaults */ }
-  return defaultLayout(isHypertrophy);
-}
+// Where the "View full details" button inside a widget's expanded sheet goes.
+const WIDGET_ROUTES = {
+  overview: '/progress/week',
+  cycle: '/progress/phase',
+  muscles: '/progress/muscle-balance',
+  skills: '/progress/skills',
+  prs: '/progress/records',
+  weight: '/progress/weight',
+  consistency: '/progress/habits',
+  trainingTime: null,
+  attendance: '/history',
+};
+
+const renderWidget = (id, props) => {
+  switch (id) {
+    case 'overview':
+      return <OverviewWidget {...props} />;
+    case 'cycle':
+      return <PhaseHistoryWidget {...props} />;
+    case 'muscles':
+      return <MuscleBalanceWidget {...props} />;
+    case 'skills':
+      return <SkillsWidget {...props} />;
+    case 'prs':
+      return <PRsWidget {...props} />;
+    case 'weight':
+      return <WeightWidget {...props} />;
+    case 'consistency':
+      return <ConsistencyWidget {...props} />;
+    case 'trainingTime':
+      return <TrainingTimeWidget {...props} />;
+    case 'attendance':
+      return <AttendanceCalendarWidget {...props} />;
+    default:
+      return null;
+  }
+};
 
 export default function Progress() {
   const navigate = useNavigate();
@@ -55,121 +109,26 @@ export default function Progress() {
   const focus = getWeeklyFocus(currentWeek, programId);
   const isHypertrophy = programId === 'hypertrophy';
 
-  const [layout, setLayout] = useState(() => readLayout(programId, isHypertrophy));
-  const [editing, setEditing] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [selected, setSelected] = useState([]);
+  const [sheetId, setSheetId] = useState(null);
 
-  useEffect(() => {
-    setLayout(readLayout(programId, isHypertrophy));
-    setSelected([]);
-    setEditing(false);
-    setAddOpen(false);
-  }, [programId, isHypertrophy]);
+  const layout = useMemo(() => LAYOUTS[isHypertrophy ? 'hypertrophy' : 'skill_focus'], [isHypertrophy]);
 
-  useEffect(() => {
-    try { localStorage.setItem(`${STORAGE_KEY}.${programId}`, JSON.stringify(layout)); } catch { /* storage unavailable */ }
-  }, [layout, programId]);
-
-  const presentIds = useMemo(() => new Set(layout.flatMap(item => item.type === 'stack' ? item.items.map(child => child.id) : [item.id])), [layout]);
-  const available = WIDGETS.filter(widget => (!widget.program || widget.program === programId) && !presentIds.has(widget.id));
-
-  const updateWidget = (id, updater) => setLayout(current => current.map(item => {
-    if (item.type === 'widget' && item.id === id) return updater(item);
-    if (item.type === 'stack') return { ...item, items: item.items.map(child => child.id === id ? updater(child) : child) };
-    return item;
-  }));
-
-  const removeWidget = (id) => {
-    setLayout(current => current.flatMap(item => {
-      if (item.type === 'widget' && item.id === id) return [];
-      if (item.type === 'stack') {
-        const items = item.items.filter(child => child.id !== id);
-        if (items.length > 1) return [{ ...item, items }];
-        if (items.length === 1) return [{ type: 'widget', ...items[0] }];
-        return [];
-      }
-      return [item];
-    }));
-    setSelected(current => current.filter(value => value !== id));
+  const commonProps = {
+    sessions,
+    currentWeek,
+    programId,
+    phase,
+    bodyweightEntries,
+    unit: units,
+    onWeekClick: (week) => navigate(`/progress/phase?week=${week}`),
   };
 
-  const addWidget = (widget) => {
-    setLayout(current => [...current, { type: 'widget', id: widget.id, size: widget.defaultSize }]);
-    setAddOpen(false);
-  };
+  const openSheet = (id) => setSheetId(id);
+  const closeSheet = () => setSheetId(null);
 
-  const resizeWidget = (id, direction) => updateWidget(id, item => {
-    const index = SIZE_ORDER.indexOf(item.size);
-    return { ...item, size: SIZE_ORDER[Math.max(0, Math.min(SIZE_ORDER.length - 1, index + direction))] };
-  });
-
-  const layerSelected = () => {
-    if (selected.length < 2) return;
-    setLayout(current => {
-      const chosen = new Set(selected);
-      const layered = [];
-      const remaining = current.flatMap(item => {
-        if (item.type === 'widget') {
-          if (chosen.has(item.id)) { layered.push({ id: item.id, size: item.size }); return []; }
-          return [item];
-        }
-        const kept = item.items.filter(child => {
-          if (chosen.has(child.id)) { layered.push(child); return false; }
-          return true;
-        });
-        if (kept.length > 1) return [{ ...item, items: kept }];
-        if (kept.length === 1) return [{ type: 'widget', ...kept[0] }];
-        return [];
-      });
-      if (layered.length < 2) return current;
-      return [...remaining, { type: 'stack', id: `stack-${Date.now()}`, items: layered }];
-    });
-    setSelected([]);
-  };
-
-  const unlayer = (stackId) => setLayout(current => current.flatMap(item => {
-    if (item.type !== 'stack' || item.id !== stackId) return [item];
-    return item.items.map(child => ({ type: 'widget', ...child }));
-  }));
-
-  const renderWidget = (id) => {
-    const common = { sessions, onClick: () => {} };
-    switch (id) {
-      case 'overview': return <OverviewWidget {...common} currentWeek={currentWeek} programId={programId} phase={phase} onClick={() => navigate('/progress/week')} />;
-      case 'phase': return <PhaseHistoryWidget {...common} currentWeek={currentWeek} programId={programId} onWeekClick={(week) => navigate(`/progress/phase?week=${week}`)} />;
-      case 'muscles': return <MuscleBalanceWidget {...common} currentWeek={currentWeek} programId={programId} onClick={() => navigate('/progress/muscle-balance')} />;
-      case 'skills': return <SkillsWidget {...common} onClick={() => navigate('/progress/skills')} />;
-      case 'prs': return <PRsWidget {...common} onClick={() => navigate('/progress/records')} />;
-      case 'weight': return <WeightWidget entries={bodyweightEntries} unit={units} onClick={() => navigate('/progress/weight')} />;
-      default: return null;
-    }
-  };
-
-  const renderCard = (item, stacked = false) => {
-    const widget = WIDGETS.find(entry => entry.id === item.id);
-    if (!widget) return null;
-    const isSelected = selected.includes(item.id);
-    return (
-      <div key={item.id} className={`${stacked ? 'w-full min-w-full snap-center' : SIZE_CLASS[item.size] || 'col-span-2'} min-w-0 relative`}>
-        <div className={editing ? 'pointer-events-none select-none' : ''}>
-          {renderWidget(item.id)}
-        </div>
-        {editing && (
-          <div className="absolute inset-0 z-10 rounded-2xl border-2 border-dashed border-foreground/35 bg-background/10">
-            <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full border border-border bg-background/95 p-1 shadow-sm">
-              <button type="button" onClick={() => setSelected(current => isSelected ? current.filter(value => value !== item.id) : [...current, item.id])} className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${isSelected ? 'bg-foreground text-background' : 'bg-muted text-foreground'}`}>
-                {isSelected ? 'Selected' : 'Select'}
-              </button>
-              <button type="button" aria-label="Make smaller" onClick={() => resizeWidget(item.id, -1)} className="rounded-full p-1.5 hover:bg-muted"><Minus size={13} /></button>
-              <button type="button" aria-label="Make larger" onClick={() => resizeWidget(item.id, 1)} className="rounded-full p-1.5 hover:bg-muted"><Maximize2 size={13} /></button>
-            </div>
-            <button type="button" aria-label={`Remove ${widget.label}`} onClick={() => removeWidget(item.id)} className="absolute right-2 top-2 rounded-full border border-border bg-background p-2 shadow-sm"><X size={14} /></button>
-            <span className="absolute bottom-2 left-2 rounded-full bg-background/95 px-2.5 py-1 text-[10px] font-semibold shadow-sm">{widget.label}</span>
-          </div>
-        )}
-      </div>
-    );
+  const openWidget = (id) => {
+    const route = WIDGET_ROUTES[id];
+    if (route) navigate(route);
   };
 
   return (
@@ -184,44 +143,59 @@ export default function Progress() {
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{focus.focus}</p>
           </div>
-          <button type="button" onClick={() => { setEditing(value => !value); setSelected([]); setAddOpen(false); }} className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors ${editing ? 'border-foreground bg-foreground text-background' : 'border-border bg-card text-foreground hover:bg-muted'}`} aria-label={editing ? 'Finish editing progress layout' : 'Edit progress layout'}>
-            {editing ? <Check size={18} /> : <Pencil size={17} />}
+          <button type="button" onClick={() => navigate('/plan')} className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-muted">
+            <Maximize size={17} />
           </button>
         </div>
       </header>
 
-      {editing && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card/70 p-2.5">
-          <button type="button" onClick={() => setAddOpen(value => !value)} className="inline-flex items-center gap-1.5 rounded-xl bg-foreground px-3 py-2 text-xs font-semibold text-background"><Plus size={14} /> Add widget</button>
-          <button type="button" onClick={layerSelected} disabled={selected.length < 2} className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold disabled:opacity-40"><Layers size={14} /> Layer selected {selected.length > 0 ? `(${selected.length})` : ''}</button>
-          <span className="ml-auto text-[10px] text-muted-foreground">Select 2+ widgets to stack them</span>
-          {addOpen && (
-            <div className="grid w-full grid-cols-2 gap-2 border-t border-border pt-2">
-              {available.length ? available.map(widget => (
-                <button key={widget.id} type="button" onClick={() => addWidget(widget)} className="rounded-xl border border-border bg-background px-3 py-2.5 text-left text-xs font-medium hover:bg-muted">{widget.label}<Plus size={13} className="float-right" /></button>
-              )) : <p className="col-span-2 py-2 text-xs text-muted-foreground">All available widgets are already on this page.</p>}
+      <div className="grid grid-cols-6 gap-2.5 sm:gap-4" style={{ gridAutoRows: '184px' }}>
+        {layout.map((slot) => {
+          const Widget = renderWidget(slot.id, commonProps);
+          if (!Widget) return null;
+          return (
+            <div
+              key={slot.id}
+              className={`col-start-${slot.colStart} col-span-${slot.colSpan} row-start-${slot.rowStart} min-w-0 overflow-hidden rounded-2xl border border-border bg-card/50 p-3 sm:p-4 cursor-pointer transition-colors hover:bg-card/70`}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openSheet(slot.id);
+                }
+              }}
+              onClick={() => openSheet(slot.id)}
+            >
+              <div className="flex items-start justify-between">
+                <p className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">{WIDGET_LABELS[slot.id]}</p>
+                <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+              </div>
+              <div className="mt-auto flex items-end justify-between gap-2">
+                {Widget}
+                <button type="button" aria-label="Open details" className="rounded-full border border-border bg-background/80 p-1.5 hover:bg-muted" onClick={(e) => { e.stopPropagation(); openSheet(slot.id); }}>
+                  <Maximize size={12} className="text-[10px]" />
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-6 gap-2.5 sm:gap-4">
-        {layout.map(item => item.type === 'stack' ? (
-          <section key={item.id} className="col-span-6 min-w-0 overflow-hidden rounded-2xl border border-border bg-card/40 p-2">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"><Layers size={12} /> Layered widgets</span>
-              {editing && <button type="button" onClick={() => unlayer(item.id)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted"><Ungroup size={12} /> Unstack</button>}
-            </div>
-            <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-1" style={{ touchAction: 'pan-x', scrollbarWidth: 'none' }}>
-              {item.items.map(child => renderCard(child, true))}
-            </div>
-            <div className="mt-1.5 flex justify-center gap-1.5">
-              {item.items.map((child, index) => <span key={child.id} className="h-1 rounded-full bg-foreground/35" style={{ width: index === 0 ? 16 : 5 }} />)}
-            </div>
-          </section>
-        ) : renderCard(item))}
+          );
+        })}
       </div>
-      {editing && <p className="mt-4 text-center text-[11px] text-muted-foreground">Your layout is saved automatically. Tap the checkmark when you’re done.</p>}
+
+      {sheetId && (
+        <ProgressDetailSheet
+          id={sheetId}
+          sessions={sessions}
+          bodyweightEntries={bodyweightEntries}
+          units={units}
+          programId={programId}
+          currentWeek={currentWeek}
+          phase={phase}
+          focus={focus}
+          onClose={closeSheet}
+          onOpenFull={openWidget}
+        />
+      )}
     </main>
   );
 }

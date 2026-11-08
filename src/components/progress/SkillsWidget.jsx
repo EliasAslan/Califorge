@@ -3,25 +3,22 @@ import { ChevronRight } from 'lucide-react';
 import { getSkillTracksStatus } from '@/lib/skills';
 import ExerciseVisual from '@/components/ExerciseVisual';
 
-export default function SkillsWidget({ sessions, onClick, className }) {
+export default function SkillsWidget({ sessions, className }) {
   const tracks = getSkillTracksStatus(sessions);
 
   return (
     <div
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      className={`h-[184px] min-h-[184px] min-w-0 overflow-hidden rounded-2xl border border-border bg-card/50 p-2.5 sm:p-4 active:scale-[0.99] transition-transform cursor-pointer flex flex-col ${className || ''}`}
+      className={`h-[184px] min-h-[184px] min-w-0 overflow-hidden rounded-2xl border border-border bg-card/50 p-2.5 sm:p-4 flex flex-col ${className || ''}`}
     >
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">Skill tree</p>
-        <ChevronRight size={18} className="text-muted-foreground" />
+      <div className="flex items-start justify-between mb-2">
+        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">Skill tree</p>
+        <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
       </div>
       <div className="flex-1 grid grid-cols-1 gap-1.5">
-        {tracks.slice(0, 2).map((t) => {
+        {tracks.slice(0, 3).map((t) => {
           const cur = t.status.current >= 0 ? t.levels[t.status.current].label : 'Not started';
           return (
-            <div key={t.id} className="flex items-center gap-1.5 p-1.5 rounded-lg bg-background/50">
+            <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-background/50 border border-border/50">
               <span className="w-7 h-7 rounded-md flex items-center justify-center bg-card/60 shrink-0">
                 <ExerciseVisual visualId={t.visualId} category={t.category} />
               </span>
