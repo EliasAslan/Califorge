@@ -1,15 +1,17 @@
 import React from 'react';
 import { ArrowDown, ArrowUp, ArrowLeftRight } from 'lucide-react';
-import { getExercise } from '@/lib/programData';
+import { getExercise, getExerciseAlternatives } from '@/lib/programData';
+import { isExerciseEquipmentAvailable } from '@/lib/exerciseAdaptations';
 
 const DIFF_RANK = { Beginner: 0, Intermediate: 1, Advanced: 2 };
 
-export default function VariationSwitcher({ originalId, currentId, onSwitch }) {
+export default function VariationSwitcher({ originalId, currentId, onSwitch, equipment = [] }) {
   const original = getExercise(originalId || currentId);
   const current = getExercise(currentId);
   if (!original || !current) return null;
 
-  const options = [original, ...(original.alternatives || []).map((id) => getExercise(id)).filter(Boolean)];
+  const options = [original, ...getExerciseAlternatives(original.id)]
+    .filter((exercise) => exercise.id === currentId || isExerciseEquipmentAvailable(exercise.id, equipment));
   if (options.length < 2) return null;
 
   const ranked = [...options].sort(

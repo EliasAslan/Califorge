@@ -98,11 +98,51 @@ export const startNewCycle = (programId) => {
   set('programCycleStarts', starts);
 };
 
+// ── Temporary daily warm-up checklist ────────────────────────────────────────
+// Checklist state survives route changes, reloads and tab switching, but is
+// scoped to the local calendar day and cleared when a workout is completed.
+const localDayKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return year + '-' + month + '-' + day;
+};
+
+export const loadWarmupProgress = (routineKey) => {
+  if (!routineKey) return [];
+  const all = get('warmupProgress', {});
+  const saved = all?.[routineKey];
+  if (!saved || saved.date !== localDayKey()) {
+    if (saved) {
+      delete all[routineKey];
+      if (Object.keys(all).length) set('warmupProgress', all);
+      else remove('warmupProgress');
+    }
+    return [];
+  }
+  return Array.isArray(saved.completed)
+    ? [...new Set(saved.completed.filter((key) => typeof key === 'string' && key.trim()))]
+    : [];
+};
+
+export const saveWarmupProgress = (routineKey, completed) => {
+  if (!routineKey) return;
+  const all = get('warmupProgress', {});
+  all[routineKey] = {
+    date: localDayKey(),
+    completed: [...new Set((Array.isArray(completed) ? completed : [])
+      .filter((key) => typeof key === 'string' && key.trim()))],
+  };
+  set('warmupProgress', all);
+};
+
+export const clearWarmupProgress = () => remove('warmupProgress');
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 export const DEFAULT_SETTINGS = {
   units: 'kg',
   bodyweight: 70,
-  equipment: ['Parallettes', 'Rings', 'Pull-up bar', 'Resistance bands', 'Dumbbells'],
+  equipment: ['Parallettes', 'Rings', 'Pull-up bar', 'Resistance bands', 'Dumbbells', 'Backpack'],
   notifications: false,
   reduceMotion: false,
   interfaceSound: true,
@@ -163,6 +203,7 @@ export const setEnjoymentFor = (id, value) => {
 // ── Local preference and active-session reset (training records live in IndexedDB) ─
 export const clearLocalData = () => {
   remove('activeSession');
+  remove('warmupProgress');
   remove('settings');
   remove('workoutLayout');
   remove('currentWeek');

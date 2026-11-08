@@ -5,12 +5,13 @@ import {
   StickyNote, ArrowLeftRight, Search,
 } from 'lucide-react';
 import { categoryColor, getExercise, LIBRARY_EXERCISES, MODES } from '@/lib/programData';
+import { isExerciseEquipmentAvailable } from '@/lib/exerciseAdaptations';
 import {
-  formatTarget, getLastPerformance, formatLastPerformance, formatClock, getRepRecommendation,
+  formatTarget, getLastPerformance, formatLastPerformance, formatClock, getRepRecommendation, applyLoadToExerciseSets,
 } from '@/lib/trainingLogic';
 import {
   loadActiveSession, saveActiveSession, clearActiveSession, loadWorkoutLayout, saveWorkoutLayout,
-  loadExerciseIncrement, saveExerciseIncrement, STALE_MS,
+  loadExerciseIncrement, saveExerciseIncrement, clearWarmupProgress, loadSettings, STALE_MS,
 } from '@/lib/storage';
 import { useSessions } from '@/hooks/useTrainingData';
 import useConsoleChrome from '@/hooks/useConsoleChrome';
@@ -59,6 +60,7 @@ export default function WorkoutSession() {
   const stageMountedRef = useRef(false);
   const isRestPhase = session?.phase === 'rest';
   const { data: sessions = [] } = useSessions();
+  const availableEquipment = loadSettings().equipment || [];
   useConsoleChrome();
 
   // Animate the console stage when the workout state or layout changes, but
@@ -309,6 +311,7 @@ export default function WorkoutSession() {
   };
 
   const matchingExercises = LIBRARY_EXERCISES
+    .filter((exercise) => isExerciseEquipmentAvailable(exercise.id, availableEquipment))
     .filter((exercise) => {
       const query = exerciseQuery.trim().toLowerCase();
       if (!query) return true;
@@ -357,16 +360,22 @@ export default function WorkoutSession() {
         next.activeMs = (next.activeMs || 0) + (Date.now() - next.resumeAt);
         next.resumeAt = null;
       }
+      clearWarmupProgress();
       saveActiveSession(next);
       setSession(next);
       withViewTransition(() => navigate('/summary'), 'console-in');
       return;
     }
 
-    // carry the chosen progression forward to the next set of the same exercise
-    if (upcoming.exerciseIndex === cursor.exerciseIndex && carriedProgression) {
+    // Carry the chosen progression and offer the previous rep result as a
+    // one-tap suggestion for the next set. The athlete still confirms it.
+    if (upcoming.exerciseIndex === cursor.exerciseIndex) {
       const nextSet = next.exercises[upcoming.exerciseIndex].sets[upcoming.setIndex];
-      if (!nextSet.progression) nextSet.progression = carriedProgression;
+      const justLoggedSet = next.exercises[cursor.exerciseIndex].sets[cursor.setIndex];
+      if (carriedProgression && !nextSet.progression) nextSet.progression = carriedProgression;
+      if (justLoggedSet.actualReps != null && nextSet.actualReps == null) {
+        nextSet.suggestedReps = justLoggedSet.actualReps;
+      }
     }
 
     const justFinished = next.exercises[cursor.exerciseIndex];
@@ -417,6 +426,7 @@ export default function WorkoutSession() {
       finished.activeMs = (finished.activeMs || 0) + (Date.now() - finished.resumeAt);
       finished.resumeAt = null;
     }
+    clearWarmupProgress();
     saveActiveSession(finished);
     setSession(finished);
     withViewTransition(() => navigate('/summary'), 'console-in');
@@ -478,9 +488,21 @@ export default function WorkoutSession() {
   const sheetSet = sheetExercise ? sheetExercise.sets[sheet.setIndex] : null;
   const sheetField = sheet?.field;
   const sheetLast = sheetExercise ? getLastPerformance(sheetExercise.exerciseId, sessions) : null;
+  const sheetRecommendation = sheetExercise
+    ? getRepRecommendation(sheetExercise.exerciseId, sessions, session.week, session.programId)
+    : null;
+  const currentExerciseWeight = sheetExercise?.sets.find((entry) => Number.isFinite(entry.weight))?.weight;
+  const previousSessionWeight = sheetLast?.sets?.find((entry) => Number.isFinite(entry.weight))?.weight;
+  const suggestedWeight = sheetRecommendation?.weight;
+  const sheetWeightSeed = currentExerciseWeight ?? suggestedWeight ?? previousSessionWeight ?? 0;
   const sheetSeed = sheetField === 'weight'
-    ? 0
-    : first(sheetSet?.targetReps) ?? first(sheetSet?.targetSec) ?? first(sheetSet?.holdSec) ?? 0;
+    ? sheetWeightSeed
+    : sheetSet?.suggestedReps ?? first(sheetSet?.targetReps) ?? first(sheetSet?.targetSec) ?? first(sheetSet?.holdSec) ?? 0;
+  const previousSetReps = sheetExercise?.sets
+    .slice(0, sheet?.setIndex ?? 0)
+    .reverse()
+    .find((entry) => entry.completed && !entry.skipped && Number.isFinite(entry.actualReps))
+    ?.actualReps;
   const sheetStep = sheetExercise && sheetField
     ? loadExerciseIncrement(sheetExercise.exerciseId, sheetField, DEFAULT_STEP[sheetField])
     : 1;
@@ -488,15 +510,21 @@ export default function WorkoutSession() {
   const sheetPresets = (() => {
     if (!sheetField || !sheetSet) return [];
     if (sheetField === 'weight') {
-      const lastWeight = sheetLast?.sets?.[0]?.weight;
+      const lastWeight = previousSessionWeight;
       return [
         { label: 'Bodyweight', value: 0 },
         ...(Number.isFinite(lastWeight) ? [{ label: `Last ${lastWeight} kg`, value: lastWeight }] : []),
+        ...(Number.isFinite(suggestedWeight) && suggestedWeight !== sheetSeed
+          ? [{ label: `Suggested +${suggestedWeight} kg`, value: suggestedWeight }]
+          : []),
       ];
     }
-    const lastValue = sheetLast?.sets?.[0]?.[FIELD_KEY[sheetField]];
+    const lastValue = sheetLast?.sets?.find((entry) => Number.isFinite(entry[FIELD_KEY[sheetField]]))?.[FIELD_KEY[sheetField]];
     return [
       { label: `Target ${sheetSeed}${sheetUnit}`, value: sheetSeed },
+      ...(Number.isFinite(previousSetReps) && sheetField === 'reps' && previousSetReps !== sheetSeed
+        ? [{ label: `Previous set ${previousSetReps}`, value: previousSetReps }]
+        : []),
       ...(Number.isFinite(lastValue) && lastValue !== sheetSeed
         ? [{ label: `Last ${lastValue}${sheetUnit}`, value: lastValue }]
         : []),
@@ -505,7 +533,25 @@ export default function WorkoutSession() {
 
   const commitSheet = (value) => {
     if (!sheet) return;
-    updateAt(sheet.exerciseIndex, sheet.setIndex, { [FIELD_KEY[sheet.field]]: value });
+    if (sheet.field !== 'weight') {
+      updateAt(sheet.exerciseIndex, sheet.setIndex, {
+        [FIELD_KEY[sheet.field]]: value,
+        ...(sheet.field === 'reps' ? { suggestedReps: null } : {}),
+      });
+      return;
+    }
+
+    setMissingAt(null);
+    setSession((prev) => {
+      const next = structuredClone(prev);
+      const exercise = next.exercises[sheet.exerciseIndex];
+      if (!exercise?.sets?.[sheet.setIndex]) return prev;
+      // One load selection configures every remaining set, while already
+      // completed sets retain the load that was actually performed.
+      next.exercises[sheet.exerciseIndex] = applyLoadToExerciseSets(exercise, sheet.setIndex, value);
+      next.lastActivityAt = Date.now();
+      return next;
+    });
   };
 
   const changeSheetStep = (step) => {
@@ -755,6 +801,7 @@ export default function WorkoutSession() {
             originalId={cur.originalId || cur.exerciseId}
             currentId={cur.exerciseId}
             onSwitch={switchExercise}
+            equipment={availableEquipment}
           />
           <button
             type="button"

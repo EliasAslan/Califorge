@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight, ExternalLink } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import {
   getCycleWeeks,
   getCycleConsistency,

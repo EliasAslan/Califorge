@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { triggerFeedback } from '@/lib/workoutFeedback';
 import { getSchedule, getActiveProgram, getWorkout, categoryColor } from '@/lib/programData';
-import { getPhaseForWeek, getWeekMeta, isDeloadWeek, isTestWeek, buildSession, getExercisesForTimeBudget, getModeForTimeBudget } from '@/lib/trainingLogic';
-import { loadCurrentWeek, saveCurrentWeek, startNewCycle, loadActiveSession, saveActiveSession, getEnjoyment } from '@/lib/storage';
+import { getPhaseForWeek, getWeekMeta, isDeloadWeek, isTestWeek, buildSession, planWorkoutForTimeBudget } from '@/lib/trainingLogic';
+import { loadCurrentWeek, saveCurrentWeek, startNewCycle, loadActiveSession, saveActiveSession, getEnjoyment, loadSettings } from '@/lib/storage';
 import { useSessions } from '@/hooks/useTrainingData';
 import { Dumbbell, Moon } from 'lucide-react';
 
@@ -23,11 +23,13 @@ export default function Plan() {
   const startWorkout = (workoutId) => {
     if (active) { navigate('/workout'); return; }
     const workout = getWorkout(workoutId);
-    const context = { sessions, enjoyment: getEnjoyment(), programId: getActiveProgramId() };
-    const exerciseIds = getExercisesForTimeBudget(workout, week, availableMinutes, context);
-    const session = buildSession(workoutId, week, getModeForTimeBudget(availableMinutes), {
+    const programId = getActiveProgram().id;
+    const context = { sessions, enjoyment: getEnjoyment(), equipment: loadSettings().equipment, programId };
+    const plan = planWorkoutForTimeBudget(workout, week, availableMinutes, context);
+    if (!plan.exercisePlan.length) return;
+    const session = buildSession(workoutId, week, plan.mode, {
       ...context,
-      exerciseIds,
+      exercisePlan: plan.exercisePlan,
       timeBudgetMin: availableMinutes,
     });
     if (!session) return;

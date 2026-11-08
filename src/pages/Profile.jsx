@@ -24,7 +24,7 @@ import { listCustomWorkouts, listSessions, listBodyweightEntries, replaceAllTrai
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
 
-const EQUIPMENT_OPTIONS = ['Parallettes', 'Rings', 'Pull-up bar', 'Resistance bands', 'Dumbbells', 'Weight belt', 'Wall'];
+const EQUIPMENT_OPTIONS = ['Parallettes', 'Rings', 'Pull-up bar', 'Resistance bands', 'Dumbbells', 'Backpack', 'Weight belt', 'Wall', 'Bench / stable chair', 'Step / box'];
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -216,7 +216,7 @@ export default function Profile() {
         </button>
       </SettingsSection>
 
-      <SettingsSection icon={Dumbbell} title="Available equipment" subtitle="APEX uses this when showing exercises and alternatives.">
+      <SettingsSection icon={Dumbbell} title="Available equipment" subtitle="Workouts replace or remove movements when your equipment is unavailable.">
         <div className="flex flex-wrap gap-2">
           {EQUIPMENT_OPTIONS.map((item) => {
             const selected = (settings.equipment || []).includes(item);

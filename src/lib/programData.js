@@ -1,5 +1,6 @@
 import { loadSettings } from './storage';
 import { ACCENTS } from './appearance';
+import { ADDITIONAL_EXERCISES, getExerciseAlternativeIds } from './exerciseAdaptations';
 
 // ── Phases ──────────────────────────────────────────────────────────────────
 export const PHASES = {
@@ -805,8 +806,11 @@ export const RECOVERY = [
   { name: 'Box breathing (parasympathetic)', detail: '3 min' },
 ];
 
-export const getExercise = (id) => EXERCISES[id] || null;
+export const getExercise = (id) => EXERCISES[id] || ADDITIONAL_EXERCISES[id] || null;
 
-// Library: all exercises grouped by category
+export const getExerciseAlternatives = (id) =>
+  getExerciseAlternativeIds(id).map((alternativeId) => getExercise(alternativeId)).filter(Boolean);
+
+// Library: original program movements plus the low-equipment exercise pool.
 export const LIBRARY_CATEGORIES = ['push', 'pull', 'legs', 'core', 'skill', 'prehab'];
-export const LIBRARY_EXERCISES = Object.values(EXERCISES);
+export const LIBRARY_EXERCISES = [...Object.values(EXERCISES), ...Object.values(ADDITIONAL_EXERCISES)];
