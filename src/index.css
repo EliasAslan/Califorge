@@ -531,8 +531,23 @@
   padding: 18px 0 16px;
 }
 .console-hero-watermark {
-  min-height: 218px;
   padding-bottom: 22px;
+}
+.console-watermark-stage {
+  position: relative;
+  min-height: clamp(220px, 58vw, 252px);
+}
+.console-watermark-title {
+  position: absolute;
+  right: 0;
+  bottom: 10px;
+  left: 0;
+  z-index: 1;
+}
+.console-watermark-meta {
+  position: relative;
+  z-index: 1;
+  margin-top: 4px;
 }
 .console-hero-badge-mode {
   padding-bottom: 18px;
@@ -568,8 +583,8 @@
 }
 .console-watermark {
   position: absolute;
-  top: -12px;
-  right: -12px;
+  top: 0;
+  right: 0;
   width: clamp(190px, 54vw, 236px);
   height: clamp(190px, 54vw, 236px);
   color: var(--console-chalk);
