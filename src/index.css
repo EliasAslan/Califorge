@@ -1208,3 +1208,15 @@ html[data-reduce-motion='true'] *::after {
   .apex-page { padding-inline: 20px; }
   .apex-settings-card { padding: 18px; }
 }
+
+.apex-toggle-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--background) / 0.55);
+  color: hsl(var(--muted-foreground));
+}
