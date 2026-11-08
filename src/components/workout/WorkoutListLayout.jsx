@@ -169,7 +169,8 @@ export default function WorkoutListLayout({
                       : `Set ${setIndex + 1}`;
 
                   return (
-                    <div key={rowSet.id || setIndex} className="flex items-stretch gap-1.5">
+                    <div key={rowSet.id || setIndex}>
+                      <div className="flex items-stretch gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleRow(exerciseIndex, setIndex)}
@@ -206,6 +207,7 @@ export default function WorkoutListLayout({
                         </button>
                       )}
 
+                      </div>
                       <div
                         className={'console-list-editor-wrap ' + (isExpanded ? 'is-open' : '')}
                         aria-hidden={!isExpanded}
