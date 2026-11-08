@@ -82,6 +82,7 @@ export default function WorkoutSession() {
   const [exerciseQuery, setExerciseQuery] = useState('');
   const [, setIncrementTick] = useState(0);
   const [stageAnimate, setStageAnimate] = useState(false);
+  const visualMode = loadSettings().workoutVisualMode || 'badge';
   const stageMountedRef = useRef(false);
   const isRestPhase = session?.phase === 'rest';
   const { data: sessions = [] } = useSessions();
@@ -1335,26 +1336,33 @@ export default function WorkoutSession() {
             <>
               <main className="min-h-0 flex-1 overflow-y-auto">
                 <section className="console-hero">
-            <div className="console-watermark" aria-hidden="true">
-              <ExerciseVisual
-                visualId={cur.visualId}
-                category={cur.category}
-                color="var(--console-chalk)"
-                className="h-full w-full"
-              />
-            </div>
-            <span className="console-signal" aria-hidden="true" />
-            <p className="console-category">{cur.category}</p>
-            <h1 className="console-title">{cur.name}</h1>
-            <p className="mt-1 text-[13px] text-[var(--console-steel)]">{cur.variation}</p>
-            <p className="console-set-context">
-              Set {targetCursor.setIndex + 1} of {cur.sets.length}
-              {set.completed
-                ? set.skipped
-                  ? ', skipped'
-                  : ', logged'
-                : ', ready to log'}
-            </p>
+            {visualMode === 'watermark' ? (
+              <>
+                <div className="console-watermark" aria-hidden="true">
+                  <ExerciseVisual visualId={cur.visualId} category={cur.category} className="h-full w-full" />
+                </div>
+                <div className="console-hero-body">
+                  <span className="console-signal" aria-hidden="true" />
+                  <p className="console-category">{cur.category}</p>
+                  <h1 className="console-title">{cur.name}</h1>
+                  <p className="mt-1 text-[13px] text-[var(--console-steel)]">{cur.variation}</p>
+                  <p className="console-set-context">Set {targetCursor.setIndex + 1} of {cur.sets.length}{set.completed ? (set.skipped ? ', skipped' : ', logged') : ', ready to log'}</p>
+                </div>
+              </>
+            ) : (
+              <div className="console-hero-body">
+                <div className="console-hero-with-badge">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <span className="console-signal" aria-hidden="true" />
+                    <p className="console-category">{cur.category}</p>
+                    <h1 className="console-title">{cur.name}</h1>
+                    <p className="mt-1 text-[13px] text-[var(--console-steel)]">{cur.variation}</p>
+                  </div>
+                  <div className="console-hero-badge" aria-hidden="true"><ExerciseVisual visualId={cur.visualId} category={cur.category} className="h-full w-full" /></div>
+                </div>
+                <p className="console-set-context">Set {targetCursor.setIndex + 1} of {cur.sets.length}{set.completed ? (set.skipped ? ', skipped' : ', logged') : ', ready to log'}</p>
+              </div>
+            )}
 
             {hasLevels && (
               <ProgressionSelector
