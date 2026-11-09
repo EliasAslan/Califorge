@@ -1428,7 +1428,7 @@ export default function WorkoutSession() {
               </div>
             )}
 
-            <div className={`console-readout-row ${visualMode === 'watermark' && cur.sets.length <= 1 ? 'is-spaced' : ''}`}>
+            <div className="console-readout-row">
               <div className="console-readout-cell">
                 <span className="console-readout-label">Target</span>
                 <span className="console-readout-value">{exDef ? formatTarget(exDef) : '—'}</span>
