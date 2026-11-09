@@ -69,10 +69,11 @@ const showOsNotification = async (title, body) => {
 
 // Fires the reminder for `date`. Returns the planned session, or null when
 // there is nothing to remind about (rest day / already sent today).
-export const fireSessionReminder = async (date = new Date()) => {
+export const fireSessionReminder = async (date = new Date(), { markSent = true } = {}) => {
   const planned = getTodayPlannedSession(date);
   if (!planned) return null;
-  saveLastReminderDay(localDayKey(date));
+  // A settings preview must not consume the user's once-daily scheduled reminder.
+  if (markSent) saveLastReminderDay(localDayKey(date));
   playNotificationSound();
   await showOsNotification(
     'APEX — training day',
