@@ -223,6 +223,7 @@ export const clearLocalData = () => {
   remove('currentWeek');
   remove('programWeeks');
   remove('programCycleStarts');
+  remove('lastReminderDay');
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('califorge:settings-changed'));
 };
 // Restore only known local preference keys from a user-selected backup.
