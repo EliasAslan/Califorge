@@ -42,7 +42,7 @@ try {
   const storage = await import(pathToFileURL(path.join(tempRoot, 'storage.mjs')));
   const reminders = await import(pathToFileURL(path.join(tempRoot, 'sessionReminders.mjs')));
   const { loadSettings, saveSettings, loadLastReminderDay } = storage;
-  const { getTodayPlannedSession, isReminderDue, maybeFireSessionReminder, localDayKey } = reminders;
+  const { getTodayPlannedSession, isReminderDue, maybeFireSessionReminder, fireSessionReminder, localDayKey } = reminders;
 
   // Monday 2026-11-09 is a training day (Push A) in the skill program;
   // Sunday 2026-11-08 is a planned rest day.
@@ -63,6 +63,10 @@ try {
   assert.equal(isReminderDue(MONDAY_MORNING), false, 'not due before the reminder time');
   assert.equal(isReminderDue(SUNDAY_NOON), false, 'not due on a rest day');
   assert.equal(isReminderDue(MONDAY_AFTER_REMINDER), true, 'due after the reminder time on a training day');
+
+  const preview = await fireSessionReminder(MONDAY_AFTER_REMINDER, { markSent: false });
+  assert.equal(preview?.workoutId, 'push_a', 'test reminder can preview the planned session');
+  assert.equal(loadLastReminderDay(), null, 'test reminder must not consume the scheduled daily reminder');
 
   const fired = await maybeFireSessionReminder(MONDAY_AFTER_REMINDER);
   assert.equal(fired?.workoutId, 'push_a', 'reminder fires with today\'s planned session');
