@@ -1401,7 +1401,7 @@ export default function WorkoutSession() {
 
             {cur.sets.length > 1 && (
               <div
-                className={`console-ladder ${hasLevels || ['frontlever', 'flrow', 'ringrow'].includes(cur.visualId) ? 'is-compact' : ''}`}
+                className="console-ladder"
                 aria-label={`${cur.name} set progress`}
               >
                 {cur.sets.map((rowSet, index) => {
