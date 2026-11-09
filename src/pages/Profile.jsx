@@ -67,7 +67,7 @@ export default function Profile() {
   };
 
   const sendTestReminder = async () => {
-    const planned = await fireSessionReminder();
+    const planned = await fireSessionReminder(new Date(), { markSent: false });
     if (planned) {
       toast({ title: 'Test reminder sent', description: `Today's session: ${planned.workoutName}.` });
     } else {
