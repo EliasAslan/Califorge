@@ -42,6 +42,20 @@ function SecondaryRow({ label, value, unit = '', onOpen }) {
 export default function SetInputs({ exercise, set, onOpen, variant = 'focus' }) {
   const type = exercise.type;
   const compact = variant === 'list';
+  // Weight tracking is opt-in per exercise per session: the "Set added
+  // weight" menu action stores a load on the exercise's sets, and this row
+  // then appears so the tracking stays visible. Weighted exercises always
+  // show it; skill practice never does.
+  const weightTracked = type !== 'weighted' && !isSkillType(type)
+    && (exercise.sets || []).some((entry) => Number.isFinite(entry.weight));
+  const weightRow = weightTracked ? (
+    <SecondaryRow
+      label="Added weight"
+      value={set.weight}
+      unit="kg"
+      onOpen={() => onOpen('weight')}
+    />
+  ) : null;
 
   if (isSkillType(type)) {
     return (
@@ -95,29 +109,36 @@ export default function SetInputs({ exercise, set, onOpen, variant = 'focus' }) 
           unit="s"
           onOpen={() => onOpen('hold')}
         />
+        {weightRow}
       </div>
     );
   }
 
   if (type === 'hold') {
     return (
-      <Readout
-        label="Hold"
-        value={set.actualSec}
-        unit="s"
-        onOpen={() => onOpen('hold')}
-        compact={compact}
-      />
+      <div>
+        <Readout
+          label="Hold"
+          value={set.actualSec}
+          unit="s"
+          onOpen={() => onOpen('hold')}
+          compact={compact}
+        />
+        {weightRow}
+      </div>
     );
   }
 
   return (
-    <Readout
-      label="Reps"
-      value={set.actualReps}
-      onOpen={() => onOpen('reps')}
-      compact={compact}
-    />
+    <div>
+      <Readout
+        label="Reps"
+        value={set.actualReps}
+        onOpen={() => onOpen('reps')}
+        compact={compact}
+      />
+      {weightRow}
+    </div>
   );
 }
 

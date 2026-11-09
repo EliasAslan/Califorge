@@ -14,7 +14,8 @@
     "test:storage": "node scripts/verify-local-storage.mjs",
     "test:independent": "node scripts/verify-independent.mjs",
     "test:preflight": "node scripts/verify-build-preflight.mjs",
-    "test": "npm run test:preflight && npm run test:logic && npm run test:storage && npm run test:idb && npm run test:independent && npm run test:session && npm run test:feedback",
+    "test": "npm run test:preflight && npm run test:logic && npm run test:storage && npm run test:idb && npm run test:independent && npm run test:session && npm run test:feedback && npm run test:reminders",
+    "test:reminders": "node scripts/verify-session-reminders.mjs",
     "test:idb": "node scripts/verify-idb-failure.mjs",
     "test:session": "node scripts/verify-workout-session-ui.mjs",
     "test:feedback": "node scripts/verify-workout-feedback.mjs"

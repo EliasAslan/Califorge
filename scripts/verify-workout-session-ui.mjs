@@ -128,6 +128,43 @@ try {
   assert.match(workoutSessionSource, /if \(layoutBeforeReorder\) setLayout\(layoutBeforeReorder\)/);
   assert.match(workoutSessionSource, /setLayoutBeforeReorder\(layout\)/);
 
+  // Workout menu: Add set and Set added weight are quick access outside the
+  // Manage group; Manage holds Change/Add/Reorder exercise.
+  const manageHeaderAt = workoutSessionSource.search(/\n\s*Manage\s*\n/);
+  assert.ok(manageHeaderAt > 0, 'Menu should have a Manage group header');
+  const quickAccess = workoutSessionSource.slice(0, manageHeaderAt);
+  const manageGroup = workoutSessionSource.slice(
+    manageHeaderAt,
+    workoutSessionSource.indexOf('Finish workout', manageHeaderAt),
+  );
+  assert.ok(quickAccess.includes('Add set'), 'Add set must be quick access before Manage');
+  assert.ok(quickAccess.includes('Set added weight'), 'Set added weight must be quick access before Manage');
+  for (const label of ['Change exercise', 'Add exercise', 'Reorder exercises']) {
+    assert.ok(manageGroup.includes(label), `${label} must be inside Manage`);
+  }
+  assert.ok(!manageGroup.includes('Add set'), 'Add set must not be inside Manage');
+  assert.ok(!manageGroup.includes('Set added weight'), 'Set added weight must not be inside Manage');
+  assert.match(workoutSessionSource, /openSheet\('weight'\)/, 'Set added weight opens the weight wheel for the current set');
+
+  // Weight tracking appears on the exercise inputs once a load is set for it
+  // (session- and exercise-scoped), and never for skill practice.
+  const setInputsSource = await fs.readFile(path.resolve('src/components/workout/SetInputs.jsx'), 'utf8');
+  assert.match(setInputsSource, /weightTracked/, 'SetInputs should derive weight tracking from the exercise sets');
+  assert.match(setInputsSource, /label="Added weight"/, 'Weight tracking should render an Added weight row');
+
+  // The watermark title zone reserves two lines so short exercise names do
+  // not pull the meta block and set ladder up into the background figure.
+  const cssSource = await fs.readFile(path.resolve('src/index.css'), 'utf8');
+  assert.match(cssSource, /\.console-watermark-title \{[^}]*min-height:/, 'Watermark title should reserve a fixed height');
+
+  // The ladder uses compact spacing when a progression selector already
+  // fills the gap, or when the figure is horizontal (front lever / rows).
+  // These bigger gaps are watermark-only; badge mode keeps tight spacing.
+  assert.match(cssSource, /\.console-ladder \{[\s\S]*?margin-top: 14px;/, 'Base ladder spacing stays tight for badge mode');
+  assert.match(cssSource, /\.console-hero-watermark \.console-ladder \{\s*margin-top: 52px;/, 'Watermark ladder clearance should exist');
+  assert.match(cssSource, /\.console-hero-watermark \.console-ladder\.is-compact \{[\s\S]*?margin-top:/, 'Compact ladder spacing should exist');
+  assert.match(workoutSessionSource, /'frontlever', 'flrow', 'ringrow'\]/, 'Horizontal figures should use compact ladder spacing');
+
   console.log('Workout session UI and logic checks passed.');
 } finally {
   await fs.rm(tempRoot, { recursive: true, force: true });

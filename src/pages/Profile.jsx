@@ -2,12 +2,14 @@ import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
+  Bell,
   Check,
   ChevronRight,
   Download,
   Dumbbell,
   Moon,
   Palette,
+  Play,
   Sun,
   Trash2,
   Upload,
@@ -17,6 +19,8 @@ import {
   Wrench,
 } from 'lucide-react';
 import { loadSettings, saveSettings, loadActiveSession, loadAllProgramWeeks, loadProgramCycleStarts, restoreLocalState, clearLocalData } from '@/lib/storage';
+import { COUNTDOWN_SOUNDS, previewRestCountdownSound, previewNotificationSound } from '@/lib/workoutFeedback';
+import { requestNotificationPermission, getNotificationPermission, fireSessionReminder } from '@/lib/sessionReminders';
 import { PROGRAM_LIST } from '@/lib/programData';
 import { ACCENT_LIST, applyAppearance } from '@/lib/appearance';
 import { useDeleteAllSessions, useDeleteAllCustomWorkouts } from '@/hooks/useTrainingData';
@@ -42,6 +46,34 @@ export default function Profile() {
     setSettings(next);
     saveSettings(next);
     if ('theme' in patch || 'accent' in patch) applyAppearance(next);
+  };
+
+  const toggleNotifications = async (value) => {
+    if (!value) {
+      update({ notifications: false });
+      return;
+    }
+    const permission = await requestNotificationPermission();
+    if (permission === 'granted') {
+      update({ notifications: true });
+      toast({ title: 'Session reminders on', description: 'You will get a reminder with the notification sound on planned training days.' });
+      return;
+    }
+    if (permission === 'unsupported') {
+      toast({ title: 'Notifications not supported', description: 'This browser cannot show notifications. The in-app sound still works while APEX is open.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Notifications blocked', description: 'Allow notifications in your browser settings, then turn reminders on again.', variant: 'destructive' });
+    }
+  };
+
+  const sendTestReminder = async () => {
+    const planned = await fireSessionReminder();
+    if (planned) {
+      toast({ title: 'Test reminder sent', description: `Today's session: ${planned.workoutName}.` });
+    } else {
+      toast({ title: 'No session today', description: 'Today is a planned rest day, so there is nothing to remind you about. Try the sound preview instead.' });
+      previewNotificationSound();
+    }
   };
 
   const toggleEquipment = (item) => {
@@ -231,10 +263,90 @@ export default function Profile() {
 
       <SettingsSection icon={Volume2} title="Training preferences" subtitle="Small details that make sessions feel right.">
         <div>
-          <ToggleRow label="Workout notifications" description="Reminders for planned sessions" value={settings.notifications} onChange={(value) => update({ notifications: value })} />
+          <ToggleRow label="Workout notifications" description="Daily reminder for planned sessions, with the notification sound" value={settings.notifications} onChange={toggleNotifications} />
+          {settings.notifications && (
+            <div className="mt-1 mb-3 ml-[52px] space-y-2 pr-1">
+              <label className="flex items-center justify-between gap-3">
+                <span className="text-xs font-medium text-muted-foreground">Reminder time</span>
+                <input
+                  type="time"
+                  value={settings.reminderTime || '08:00'}
+                  onChange={(event) => update({ reminderTime: event.target.value || '08:00' })}
+                  aria-label="Reminder time"
+                  className="apex-number-input w-32"
+                />
+              </label>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {getNotificationPermission() === 'granted'
+                  ? 'Reminds you on planned training days at this time. Fires while APEX is open or running in the background.'
+                  : 'Browser notifications are not enabled — you will hear the sound while APEX is open, but no system notification will appear.'}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => previewNotificationSound()}
+                  className="apex-equipment-chip"
+                >
+                  <Play size={12} /> Sound preview
+                </button>
+                <button
+                  type="button"
+                  onClick={sendTestReminder}
+                  className="apex-equipment-chip"
+                >
+                  <Bell size={12} /> Test reminder
+                </button>
+              </div>
+            </div>
+          )}
           <ToggleRow label="Interface sounds" description="Soft cues for selections and completed sets" value={settings.interfaceSound} onChange={(value) => update({ interfaceSound: value })} />
           <ToggleRow label="Interface haptics" description="Subtle feedback for key actions" value={settings.interfaceHaptics} onChange={(value) => update({ interfaceHaptics: value })} icon={Vibrate} />
           <ToggleRow label="Rest timer sound" description="Play a sound when rest ends" value={settings.restSound} onChange={(value) => update({ restSound: value })} />
+          <div className="mt-3">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Rest countdown sound</p>
+            <div className="space-y-2">
+              {COUNTDOWN_SOUNDS.map((sound) => {
+                const selected = (settings.restCountdownSound || 'basic') === sound.id;
+                return (
+                  <div
+                    key={sound.id}
+                    className={`apex-program-option ${selected ? 'is-selected' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => { update({ restCountdownSound: sound.id }); previewRestCountdownSound(sound.id); }}
+                      aria-pressed={selected}
+                      aria-label={`${sound.label} countdown${selected ? ', selected' : ''}`}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      <span className="apex-program-icon"><Volume2 size={17} /></span>
+                      <span className="min-w-0 flex-1 text-left">
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                          {sound.label}
+                          {selected && <span className="apex-current-badge"><Check size={10} /> ACTIVE</span>}
+                        </span>
+                        <span className="mt-1 block text-[11px] leading-relaxed text-muted-foreground">{sound.description}</span>
+                      </span>
+                      <span className={`apex-radio ${selected ? 'is-selected' : ''}`}>{selected && <span />}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => previewRestCountdownSound(sound.id)}
+                      aria-label={`Preview ${sound.label}`}
+                      title={`Preview ${sound.label}`}
+                      className="apex-equipment-chip shrink-0"
+                    >
+                      <Play size={12} /> Preview
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              Selecting a sound plays a preview. Previews work even when the rest timer sound toggle is off.
+              {!settings.restSound && ' Turn the rest timer sound toggle on to hear the countdown during workouts.'}
+            </p>
+          </div>
           <ToggleRow label="Rest timer vibration" description="Vibrate when rest ends" value={settings.restVibration} onChange={(value) => update({ restVibration: value })} icon={Vibrate} />
           <ToggleRow label="Reduce motion" description="Use fewer interface animations" value={settings.reduceMotion} onChange={(value) => update({ reduceMotion: value })} icon={Activity} />
         </div>

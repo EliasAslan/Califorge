@@ -102,8 +102,59 @@ export const triggerFeedback = (cue = 'selection') => {
 
 // Rest alerts retain their independent sound and vibration preferences.
 // Browsers cannot set vibration intensity; stronger cues use longer pulse patterns.
+
+// Selectable rest-countdown cues. 'basic' is the built-in synthesized beep
+// sequence; 'race' plays the race-start MP3 (short beeps + long "go" beep,
+// ~3s total) starting at 3 seconds remaining so the "go" lands on 0.
+export const COUNTDOWN_SOUNDS = [
+  {
+    id: 'basic',
+    label: 'Classic beeps',
+    description: 'Built-in escalating beeps for the final 5 seconds, then a chime when rest ends.',
+  },
+  {
+    id: 'race',
+    label: 'Race start beeps',
+    description: 'Race-style short beeps with a long "go" beep in the final 3 seconds. The "go" replaces the rest-over chime.',
+  },
+];
+
+export const RACE_BEEPS_URL = '/sounds/race-start-beeps.mp3';
+export const NOTIFICATION_URL = '/sounds/notification.mp3';
+
+const getCountdownSoundId = () => {
+  const id = loadSettings().restCountdownSound;
+  return COUNTDOWN_SOUNDS.some((sound) => sound.id === id) ? id : 'basic';
+};
+
+// Plays a bundled MP3 file. Returns silently where HTML audio is unavailable
+// (e.g. Node-based verification scripts) or playback is blocked.
+const fileAudioCache = new Map();
+const playFileSound = (url) => {
+  try {
+    const AudioCtor = typeof window !== 'undefined' ? window.Audio : undefined;
+    if (!AudioCtor) return;
+    let audio = fileAudioCache.get(url);
+    if (!audio) {
+      audio = new AudioCtor(url);
+      audio.preload = 'auto';
+      fileAudioCache.set(url, audio);
+    }
+    audio.currentTime = 0;
+    const result = audio.play();
+    result?.catch?.(() => {});
+  } catch {
+    // Audio is an enhancement; unsupported or blocked audio stays silent.
+  }
+};
+
 export const playRestCountdownSound = (secondsRemaining) => {
   if (!loadSettings().restSound) return;
+  if (getCountdownSoundId() === 'race') {
+    // One full race-start sequence covers 3-2-1-go; tick beeps are skipped.
+    if (secondsRemaining === 3) playFileSound(RACE_BEEPS_URL);
+    return;
+  }
   // Square waves have a clearer edge than soft sine tones on phone speakers.
   // Keep levels below clipping while making the final countdown hard to miss.
   const volume = secondsRemaining >= 5 ? 0.16 : secondsRemaining === 4 ? 0.22 : 0.28;
@@ -111,8 +162,40 @@ export const playRestCountdownSound = (secondsRemaining) => {
   playTones([{ frequency, duration: 0.085, volume, type: 'square' }]);
 };
 
+// Audition a countdown cue without touching the restSound master toggle, so
+// users can compare options in Settings before committing to one.
+export const previewRestCountdownSound = (soundId) => {
+  const id = COUNTDOWN_SOUNDS.some((sound) => sound.id === soundId) ? soundId : getCountdownSoundId();
+  if (id === 'race') {
+    playFileSound(RACE_BEEPS_URL);
+    return;
+  }
+  // Short demo of the escalating final ticks (5/4/3 compressed to ~1s).
+  playTones([
+    { frequency: 660, duration: 0.085, volume: 0.16, type: 'square' },
+    { frequency: 740, delay: 0.3, duration: 0.085, volume: 0.22, type: 'square' },
+    { frequency: 880, delay: 0.6, duration: 0.085, volume: 0.28, type: 'square' },
+  ]);
+};
+
+// Notification sound for the planned-session reminder. Gated by the
+// "Workout notifications" setting; the OS notification itself uses the
+// system sound, while this MP3 plays when the app is open.
+export const playNotificationSound = () => {
+  if (!loadSettings().notifications) return;
+  playFileSound(NOTIFICATION_URL);
+};
+
+// Audition the reminder sound from Settings, bypassing the toggle.
+export const previewNotificationSound = () => {
+  playFileSound(NOTIFICATION_URL);
+};
+
 export const playRestCompleteSound = () => {
   if (!loadSettings().restSound) return;
+  // The race-start file ends with its own long "go" beep at 0, so the extra
+  // chime would double the signal. Vibration still fires from the callers.
+  if (getCountdownSoundId() === 'race') return;
   playTones([
     { frequency: 880, duration: 0.2, volume: 0.28, type: 'triangle' },
     { frequency: 1046, delay: 0.2, duration: 0.22, volume: 0.3, type: 'triangle' },

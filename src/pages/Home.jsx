@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { triggerFeedback } from '@/lib/workoutFeedback';
-import { ArrowRight, Check, ChevronDown, Clock, Dumbbell, Moon, Play, RotateCcw, Settings2, Trash2 } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Clock, Dumbbell, HeartPulse, Moon, Play, RotateCcw, Settings2, Trash2 } from 'lucide-react';
 import { getActiveProgram, getActiveProgramId, getExercise, getWorkout, getProgramWorkouts, categoryColor, WARMUPS, COOLDOWNS, RECOVERY } from '@/lib/programData';
 import { getPhaseForWeek, getWeekMeta, buildSession, buildCustomSession, isSameDay, formatDuration, getProgramSessions, getPlanLedWorkoutRecommendation, planWorkoutForTimeBudget, getModeForTimeBudget } from '@/lib/trainingLogic';
 import { loadCurrentWeek, loadActiveSession, saveActiveSession, clearActiveSession, getEnjoyment, loadSettings, loadWarmupProgress, saveWarmupProgress } from '@/lib/storage';
@@ -144,11 +144,11 @@ export default function Home() {
         </>
       ) : isRestDay ? (
         <>
-        <RoutineCard key="recovery" title="Recovery" subtitle="A gentle reset for your rest day." items={RECOVERY} routineKey="recovery" />
         <section className="apex-rest-panel">
           <div className="flex items-start gap-3"><div className="apex-rest-icon"><Moon size={22} /></div><div><p className="apex-overline">PLANNED RECOVERY</p><h2 className="mt-1 text-2xl font-bold">Take the space.</h2><p className="mt-1 text-sm text-muted-foreground">Rest is part of the plan. Nothing is waiting to be caught up.</p></div></div>
           <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3"><p className="text-xs text-muted-foreground">Next: {workout?.name || 'Upcoming session'}</p><button type="button" onClick={() => setTrainOnRestDay(true)} className="apex-button-secondary text-xs">Train anyway</button></div>
         </section>
+        <RoutineCard key="recovery" title="Recovery" subtitle="A gentle reset for your rest day." items={RECOVERY} routineKey="recovery" large icon={HeartPulse} />
         </>
       ) : workout ? (
         <>
@@ -226,7 +226,7 @@ function getRoutineForExercises(exercisesOrIds, routines) {
     });
 }
 
-function RoutineCard({ title, subtitle, items, routineKey, persist = false }) {
+function RoutineCard({ title, subtitle, items, routineKey, persist = false, large = false, icon: Icon = null }) {
   const routineItemKey = (item) => `${item.name}::${item.detail}`;
   const [completed, setCompleted] = React.useState(() => persist ? loadWarmupProgress(routineKey) : []);
 
@@ -247,15 +247,18 @@ function RoutineCard({ title, subtitle, items, routineKey, persist = false }) {
 
   if (!items?.length) return null;
   return (
-    <details className="group mt-3 overflow-hidden rounded-xl border border-border/60 bg-card/25">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 [&::-webkit-details-marker]:hidden">
-        <div className="min-w-0">
-          <p className="text-[13px] font-semibold">{title}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</p>
+    <details className={`group overflow-hidden border bg-card/25 ${large ? 'mt-4 rounded-2xl border-border/70' : 'mt-3 rounded-xl border-border/60'}`}>
+      <summary className={`flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden ${large ? 'px-4 py-4' : 'px-3.5 py-3'}`}>
+        <div className="flex min-w-0 items-center gap-3">
+          {Icon && (<span className="apex-state-icon" aria-hidden="true"><Icon size={20} /></span>)}
+          <div className="min-w-0">
+            <p className={large ? 'text-[15px] font-bold' : 'text-[13px] font-semibold'}>{title}</p>
+            <p className={`mt-0.5 text-muted-foreground ${large ? 'text-xs' : 'text-[11px]'}`}>{subtitle}</p>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
-          <span className="rounded-full bg-muted/70 px-2 py-1 text-[10px] font-semibold tabular-nums text-muted-foreground">{items.filter((item) => completed.includes(routineItemKey(item))).length}/{items.length}</span>
-          <ChevronDown size={15} className="text-muted-foreground transition-transform group-open:rotate-180" />
+          <span className={`rounded-full bg-muted/70 font-semibold tabular-nums text-muted-foreground ${large ? 'px-2.5 py-1 text-[11px]' : 'px-2 py-1 text-[10px]'}`}>{items.filter((item) => completed.includes(routineItemKey(item))).length}/{items.length}</span>
+          <ChevronDown size={large ? 17 : 15} className="text-muted-foreground transition-transform group-open:rotate-180" />
         </div>
       </summary>
       <div className="border-t border-border/50 px-3.5 py-1.5">
@@ -263,7 +266,7 @@ function RoutineCard({ title, subtitle, items, routineKey, persist = false }) {
           const key = routineItemKey(item);
           const checked = completed.includes(key);
           return (
-            <label key={item.name} className="group/item flex min-h-10 cursor-pointer items-center gap-2.5 border-b border-border/35 py-2 last:border-0">
+            <label key={item.name} className={`group/item flex cursor-pointer items-center gap-2.5 border-b border-border/35 last:border-0 ${large ? 'min-h-11 py-2.5' : 'min-h-10 py-2'}`}>
               <input
                 type="checkbox"
                 checked={checked}
@@ -274,8 +277,8 @@ function RoutineCard({ title, subtitle, items, routineKey, persist = false }) {
                 aria-hidden="true"
                 className={`routine-check h-[19px] w-[19px] shrink-0 rounded-full border transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background ${checked ? 'is-checked' : 'group-hover/item:border-muted-foreground/65'}`}
               />
-              <span className={checked ? 'min-w-0 flex-1 text-[12px] text-muted-foreground/65' : 'min-w-0 flex-1 text-[12px] text-foreground/90'}>{item.name}</span>
-              <span className={checked ? 'shrink-0 text-[10px] text-muted-foreground/50' : 'shrink-0 text-[10px] text-muted-foreground'}>{item.detail}</span>
+              <span className={`${checked ? 'text-muted-foreground/65' : 'text-foreground/90'} min-w-0 flex-1 ${large ? 'text-[13px]' : 'text-[12px]'}`}>{item.name}</span>
+              <span className={`${checked ? 'text-muted-foreground/50' : 'text-muted-foreground'} shrink-0 ${large ? 'text-[11px]' : 'text-[10px]'}`}>{item.detail}</span>
             </label>
           );
         })}

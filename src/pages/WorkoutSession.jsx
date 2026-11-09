@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { useNavigate } from 'react-router-dom';
 import {
   X, Info, Check, ChevronLeft, ChevronRight, Pause, Play, MoreVertical, Flag, Trash2,
-  StickyNote, ArrowLeftRight, Search, Plus, ArrowUpDown, Minus, Clock3,
+  StickyNote, ArrowLeftRight, Search, Plus, ListPlus, ArrowUpDown, Minus, Clock3, Weight,
 } from 'lucide-react';
 import { categoryColor, getExercise, LIBRARY_EXERCISES, MODES } from '@/lib/programData';
 import { isExerciseEquipmentAvailable } from '@/lib/exerciseAdaptations';
@@ -977,14 +977,8 @@ export default function WorkoutSession() {
                     {layout === option.id && <Check size={13} />}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={openExercisePicker}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
-                >
-                  <ArrowLeftRight size={14} /> Change exercise
-                </button>
+                {/* Quick access: frequent in-workout actions live outside the
+                    Manage group so they are always one tap away. */}
                 <button
                   type="button"
                   role="menuitem"
@@ -996,10 +990,35 @@ export default function WorkoutSession() {
                 <button
                   type="button"
                   role="menuitem"
+                  onClick={() => {
+                    // Opens the weight wheel for the current set; picking a
+                    // load applies it to every remaining set of this exercise
+                    // (applyLoadToExerciseSets), so the added weight is tracked.
+                    setShowMenu(false);
+                    openSheet('weight');
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                >
+                  <Weight size={14} /> Set added weight
+                </button>
+                <p className="px-3 pb-1 pt-2 text-[10px] font-semibold text-[var(--console-steel)]">
+                  Manage
+                </p>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={openExercisePicker}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
+                >
+                  <ArrowLeftRight size={14} /> Change exercise
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
                   onClick={openAddExercisePicker}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] font-semibold text-[var(--console-steel)] hover:bg-[var(--console-surface-2)] hover:text-[var(--console-chalk)]"
                 >
-                  <Plus size={14} /> Add exercise
+                  <ListPlus size={14} /> Add exercise
                 </button>
                 <button
                   type="button"
@@ -1376,11 +1395,15 @@ export default function WorkoutSession() {
                 value={set.progression}
                 onChange={updateProgression}
                 accent={accent}
+                compact={['frontlever', 'flrow', 'ringrow'].includes(cur.visualId)}
               />
             )}
 
             {cur.sets.length > 1 && (
-              <div className="console-ladder" aria-label={`${cur.name} set progress`}>
+              <div
+                className={`console-ladder ${hasLevels || ['frontlever', 'flrow', 'ringrow'].includes(cur.visualId) ? 'is-compact' : ''}`}
+                aria-label={`${cur.name} set progress`}
+              >
                 {cur.sets.map((rowSet, index) => {
                   const isCurrent = index === targetCursor.setIndex;
                   const state = rowSet.completed ? 'is-past' : '';
@@ -1405,7 +1428,7 @@ export default function WorkoutSession() {
               </div>
             )}
 
-            <div className="console-readout-row">
+            <div className={`console-readout-row ${visualMode === 'watermark' && cur.sets.length <= 1 ? 'is-spaced' : ''}`}>
               <div className="console-readout-cell">
                 <span className="console-readout-label">Target</span>
                 <span className="console-readout-value">{exDef ? formatTarget(exDef) : '—'}</span>

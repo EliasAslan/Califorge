@@ -1,5 +1,5 @@
 const CACHE_NAME = 'apex-shell-v1';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/apex-mark.svg'];
+const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/apex-mark.svg', '/sounds/notification.mp3', '/sounds/race-start-beeps.mp3'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -23,6 +23,22 @@ self.addEventListener('activate', (event) => {
     )),
     self.clients.claim(),
   ]));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
+  event.waitUntil((async () => {
+    const windowClients = await self.clients.matchAll({ type: 'window', includeControlled: true });
+    for (const client of windowClients) {
+      if ('focus' in client) {
+        await client.focus();
+        if ('navigate' in client) client.navigate(targetUrl).catch(() => {});
+        return;
+      }
+    }
+    if (self.clients.openWindow) await self.clients.openWindow(targetUrl);
+  })());
 });
 
 self.addEventListener('fetch', (event) => {

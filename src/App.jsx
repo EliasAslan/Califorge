@@ -7,6 +7,7 @@ import ScrollToTop from '@/components/ScrollToTop';
 import PageNotFound from '@/lib/PageNotFound';
 import { queryClientInstance } from '@/lib/query-client';
 import { loadSettings } from '@/lib/storage';
+import { maybeFireSessionReminder } from '@/lib/sessionReminders';
 import Home from '@/pages/Home';
 import Progress from '@/pages/Progress';
 import WeightProgress from '@/pages/WeightProgress';
@@ -34,6 +35,26 @@ function MotionPreferenceSync() {
     sync();
     window.addEventListener('califorge:settings-changed', sync);
     return () => window.removeEventListener('califorge:settings-changed', sync);
+  }, []);
+  return null;
+}
+
+// Fires the daily planned-session reminder (notification sound + OS
+// notification) while the app is open. Checks on load, every 30s, and when
+// settings change; the reminder itself is capped at once per calendar day.
+function SessionReminderSync() {
+  useEffect(() => {
+    const check = () => { maybeFireSessionReminder().catch(() => {}); };
+    check();
+    const id = setInterval(check, 30_000);
+    const handleVisibility = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('califorge:settings-changed', check);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('califorge:settings-changed', check);
+    };
   }, []);
   return null;
 }
@@ -73,8 +94,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClientInstance}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <MotionPreferenceSync />
+        <SessionReminderSync />
         <ScrollToTop />
         <AppRoutes />
       </BrowserRouter>

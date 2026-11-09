@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Plus } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { categoryColor, MODES } from '@/lib/programData';
 import { getProgressionStatus, formatClock, getPhaseCompletion, maybeAdvanceWeek } from '@/lib/trainingLogic';
-import { loadActiveSession, clearActiveSession, loadSettings, saveSettings, startNewCycle } from '@/lib/storage';
+import { loadActiveSession, saveActiveSession, clearActiveSession, loadSettings, saveSettings, startNewCycle } from '@/lib/storage';
 import { useSessions, useCreateSession, useBodyweightEntries, useCreateBodyweightEntry } from '@/hooks/useTrainingData';
 import useConsoleChrome from '@/hooks/useConsoleChrome';
 import WeightWheelSheet from '@/components/workout/WeightWheelSheet';
@@ -160,11 +160,11 @@ export default function WorkoutSummary() {
               type="button"
               onClick={returnToWorkoutToAdd}
               disabled={saving || saved}
-              aria-label="Return to workout to add exercises"
-              title="Add more exercises"
+              aria-label="Back to workout"
+              title="Back to workout"
               className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-lg text-[var(--console-steel)] opacity-45 transition-opacity hover:bg-[var(--console-surface-2)] hover:opacity-100 disabled:pointer-events-none disabled:opacity-15"
             >
-              <Plus size={16} />
+              <ArrowLeft size={16} />
             </button>
             <p className="text-[12px] font-semibold text-[var(--console-steel)]">Session complete</p>
             <h1 className="mt-2 text-[clamp(2rem,9vw,2.75rem)] font-extrabold leading-[0.98] tracking-[-0.045em] text-[var(--console-chalk)]">

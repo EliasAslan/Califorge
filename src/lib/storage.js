@@ -150,10 +150,12 @@ export const DEFAULT_SETTINGS = {
   bodyweight: 70,
   equipment: ['Parallettes', 'Rings', 'Pull-up bar', 'Resistance bands', 'Dumbbells', 'Backpack'],
   notifications: false,
+  reminderTime: '08:00', // daily planned-session reminder, 24h "HH:MM"
   reduceMotion: false,
   interfaceSound: true,
   interfaceHaptics: true,
   restSound: true,
+  restCountdownSound: 'basic', // 'basic' (built-in beeps) | 'race' (race-start MP3)
   restVibration: true,
   athleteName: 'Athlete',
   theme: 'dark',
@@ -162,6 +164,11 @@ export const DEFAULT_SETTINGS = {
   workoutVisualMode: 'badge',
   enjoyment: {}, // { [exerciseId]: 1–5 }
 };
+
+// Local day key ("2026-11-08") of the last session reminder that fired, so
+// the daily reminder is sent at most once per calendar day.
+export const loadLastReminderDay = () => get('lastReminderDay', null);
+export const saveLastReminderDay = (dayKey) => set('lastReminderDay', dayKey);
 
 export const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...get('settings', {}) });
 export const saveSettings = (settings) => {

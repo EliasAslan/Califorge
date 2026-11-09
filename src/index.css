@@ -531,23 +531,26 @@
   padding: 18px 0 16px;
 }
 .console-hero-watermark {
-  padding-bottom: 22px;
+  padding-bottom: 14px;
 }
+/* The watermark figure is a pure background layer: the stage reserves no
+   space of its own, the title flows normally, and the meta block sits
+   directly below the title. The figure positions against .console-hero. */
 .console-watermark-stage {
-  position: relative;
-  min-height: clamp(220px, 58vw, 252px);
+  display: contents;
 }
 .console-watermark-title {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
+  position: relative;
   z-index: 1;
+  /* Always reserve two title lines so short names don't pull the meta block
+     and set ladder up into the background figure. The reserved area is
+     covered by the watermark, so it reads as figure space, not a gap. */
+  min-height: calc(6px + clamp(2rem, 9vw, 2.6rem) * 1.96);
 }
 .console-watermark-meta {
   position: relative;
   z-index: 1;
-  margin-top: 30px;
+  margin-top: 2px;
 }
 .console-hero-badge-mode {
   padding-bottom: 18px;
@@ -633,6 +636,12 @@ html.theme-light .console-watermark { opacity: 0.18; color: var(--foreground); }
   border-top: 1px solid var(--console-line);
   border-bottom: 1px solid var(--console-line);
 }
+/* Single-set exercises have no set ladder, so in watermark mode the readout
+   gets extra clearance from the background figure. Exercises with a ladder
+   keep the normal spacing. */
+.console-readout-row.is-spaced {
+  margin-top: 36px;
+}
 .console-readout-cell {
   min-width: 0;
   flex: 1;
@@ -666,6 +675,17 @@ html.theme-light .console-watermark { opacity: 0.18; color: var(--foreground); }
   align-items: flex-start;
   gap: 5px;
   margin-top: 14px;
+}
+/* The larger watermark-mode clearance below only applies in watermark mode:
+   badge mode has no figure behind the text and keeps the tight spacing. */
+.console-hero-watermark .console-ladder {
+  margin-top: 52px;
+}
+/* Compact spacing when the progression selector already fills the gap, or
+   when the watermark figure is horizontal (front lever / row figures sit
+   higher in the frame and do not reach the ladder). */
+.console-hero-watermark .console-ladder.is-compact {
+  margin-top: 24px;
 }
 .console-ladder-step {
   min-width: 0;
