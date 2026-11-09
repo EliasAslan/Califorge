@@ -278,7 +278,7 @@ export default function Profile() {
               </label>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
                 {getNotificationPermission() === 'granted'
-                  ? 'Reminds you on planned training days at this time. Fires while APEX is open or running in the background.'
+                  ? 'Reminds you on planned training days while APEX is running. Browsers may delay background checks; closing the app stops reminders.'
                   : 'Browser notifications are not enabled — you will hear the sound while APEX is open, but no system notification will appear.'}
               </p>
               <div className="flex gap-2">
