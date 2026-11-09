@@ -41,7 +41,7 @@ try {
 
   const storage = await import(pathToFileURL(path.join(tempRoot, 'storage.mjs')));
   const reminders = await import(pathToFileURL(path.join(tempRoot, 'sessionReminders.mjs')));
-  const { loadSettings, saveSettings, loadLastReminderDay } = storage;
+  const { loadSettings, saveSettings, loadLastReminderDay, saveLastReminderDay, clearLocalData } = storage;
   const { getTodayPlannedSession, isReminderDue, maybeFireSessionReminder, fireSessionReminder, localDayKey } = reminders;
 
   // Monday 2026-11-09 is a training day (Push A) in the skill program;
@@ -73,6 +73,10 @@ try {
   assert.equal(loadLastReminderDay(), localDayKey(MONDAY_AFTER_REMINDER), 'fired day is recorded');
   assert.equal(isReminderDue(MONDAY_AFTER_REMINDER), false, 'only once per day');
   assert.equal(await maybeFireSessionReminder(MONDAY_AFTER_REMINDER), null, 'second check does not refire');
+
+  saveLastReminderDay('2026-11-09');
+  clearLocalData();
+  assert.equal(loadLastReminderDay(), null, 'clearing local data also clears the reminder day marker');
 
   console.log('APEX session reminder checks passed.');
 } finally {
